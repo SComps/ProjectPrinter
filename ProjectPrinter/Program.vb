@@ -15,13 +15,43 @@ Public Class parmStruct
     Public arg As String
     Public value As String
 End Class
+
+Public Class Devs
+    Public Enum DvType
+        DT_PRINTER
+        DT_READER
+    End Enum
+
+    Public Enum CNType
+        CN_SOCKDEV
+        CN_FILE
+        CN_PHYSICAL
+    End Enum
+
+    Public Enum OSType
+        OS_MVS38J
+        OS_VMS
+        OS_MPE
+        OS_OTHER
+    End Enum
+
+    Public DevName As String
+    Public DevDescription As String
+    Public DevType As Integer
+    Public ConnType As Integer
+    Public DevDest As String
+    Public OS As Integer
+    Public Auto As Boolean
+    Public PDF As Boolean
+End Class
 Module Program
 
     Const parmDefined As String = "Defined parameter '{0}' as '{1}'"
     Const parmError As String = "Parameter error '{0]' is defined without a value"
     Const parmInvalid As String = "Invalid parameter {0}:{1}"
 
-    Public GlobalParms As List(Of parmStruct)
+    Public DevList As New List(Of Devs)
+    Public GlobalParms As New List(Of parmStruct)
     Public configFile As String = ""
     Public cmdPort As Integer = 0
     Public logType As String = "default"
@@ -39,6 +69,7 @@ Module Program
             'Process the parameters
             ProcessParms(GlobalParms)
         End If
+
         If cmdPort = "0" Then
             Log("Not Listening for a remote controller.")
         Else
@@ -120,7 +151,7 @@ Module Program
 
         Select Case logType
             Case "default"
-                Console.WriteLine(errMsg)
+                Console.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
             Case "none"
                 ' Requested silent operation
             Case Else
@@ -141,7 +172,44 @@ Module Program
         End
     End Sub
 
+    Sub LoadDevices()
+        ' Unload all devices.
+        DevList.Clear()
+        Log("Remote management clearing device list.")
+        ' Reload from the file
+        Dim serializer As New XmlSerializer(GetType(List(Of Devs)))
+        Dim xmlStream As New StreamReader("devices.cfg")
+        DevList = serializer.Deserialize(xmlStream)
+        xmlStream.Close()
+        Log("Remote management loading device list from configuration.")
+    End Sub
 
+    Sub SaveDevices()
+        ' Serialize the device list to XML
+        Dim serializer As New XmlSerializer(GetType(List(Of Devs)))
+        Dim xmlStream As New StreamWriter("devices.cfg")
+        Using sw As New StringWriter()
+            serializer.Serialize(sw, DevList)
+            xmlStream.Write(sw.ToString())
+            xmlStream.Close()
+        End Using
+        Log("Remote management updated the device list configuration.")
+    End Sub
+
+    Function DeviceList() As String
+        Dim out As String = ""
+        Dim outF As String = "{0,15}{1,20}{2,20}:{3,20}" & vbCrLf
+        out = out & "DEVICE LIST" & vbCrLf & vbCrLf
+        out = out & StrDup(79, "-") & vbCrLf
+        out = out & String.Format(outF, "DEVICE", "DEV_TYPE", "CONN_TYPE", "DESTINATION")
+        out = out & StrDup(79, "-") & vbCrLf
+        For Each d As Devs In DevList
+            out = out & String.Format(outF, d.DevName, d.DevType, d.ConnType, d.DevDest)
+        Next
+        out = out & StrDup(79, "-") & vbCrLf & vbCrLf
+        out = out & "END OF DEVICE LIST" & vbCrLf & vbCrLf
+        Return out
+    End Function
 
 
     ' ==============================================
@@ -153,16 +221,17 @@ Module Program
 
         Try
             listener.Start()
-            Console.WriteLine($"Listening on port {cmdPort}...")
+            Log($"Listening on port {cmdPort}...")
 
             While True
                 ' Accept incoming client connections asynchronously
                 Dim client As TcpClient = Await listener.AcceptTcpClientAsync()
-                Console.WriteLine("Client connected.")
+                Log("Accepted connection on remote management port.")
                 Await HandleClientAsync(client) ' Process the client and wait for it to finish
             End While
         Catch ex As Exception
-            Console.WriteLine($"Error: {ex.Message}")
+            Log($"Error: {ex.Message}")
+            Running = False
         Finally
             listener.Stop()
         End Try
@@ -170,35 +239,36 @@ Module Program
 
     Async Function HandleClientAsync(client As TcpClient) As Task
         Using client
-            'Try
-            Dim stream As NetworkStream = client.GetStream()
-            Dim reader As New StreamReader(stream, Encoding.UTF8)
-            Dim writer As New StreamWriter(stream, Encoding.UTF8) With {.AutoFlush = True}
+            Try
+                Dim stream As NetworkStream = client.GetStream()
+                Dim reader As New StreamReader(stream, Encoding.UTF8)
+                Dim writer As New StreamWriter(stream, Encoding.UTF8) With {.AutoFlush = True}
 
-            Log("Waiting for complete lines from the client...")
-            While client.Connected
-                ' Read a complete line of input
-                Dim line As String = Await reader.ReadLineAsync()
+                Log("Waiting for complete lines from the client...")
+                While client.Connected
+                    Await writer.WriteAsync(">>>")
+                    ' Read a complete line of input
+                    Dim line As String = Await reader.ReadLineAsync()
 
-                If line Is Nothing Then
-                    Exit While ' Client disconnected
-                End If
-                ' Process the received line
-                If line.Trim().Equals("STOP", StringComparison.OrdinalIgnoreCase) Then
-                    Console.WriteLine("Stop command received. Closing connection.")
-                    Exit While
-                ElseIf line.Trim().Equals("SHUTDOWN", StringComparison.OrdinalIgnoreCase) Then
-                    Console.WriteLine("Shutdown command received. Terminating application.")
-                    Running = False
-                    Exit While
-                End If
-                Dim response As String = ProcessLine(line)
-                ' Send the response back to the client
-                Await writer.WriteLineAsync(response)
-            End While
-            'Catch ex As Exception
-            'Log($"Client error: {ex.Message}")
-            'End Try
+                    If line Is Nothing Then
+                        Exit While ' Client disconnected
+                    End If
+                    ' Process the received line
+                    If line.Trim().Equals("STOP", StringComparison.OrdinalIgnoreCase) Then
+                        Log("Stop command received. Closing connection.")
+                        Exit While
+                    ElseIf line.Trim().Equals("SHUTDOWN", StringComparison.OrdinalIgnoreCase) Then
+                        Log("Shutdown command received. Terminating.")
+                        Running = False
+                        Exit While
+                    End If
+                    Dim response As String = ProcessLine(line)
+                    ' Send the response back to the client
+                    Await writer.WriteLineAsync(response)
+                End While
+            Catch ex As Exception
+                Log($"Client error: {ex.Message}")
+            End Try
         End Using
     End Function
 
@@ -207,14 +277,15 @@ Module Program
         Dim NoCommand As String = "ERROR: '{0}' Invalid command. Please review the documentation."
         Select Case input.Trim
             Case "HELLO"
-                Return "ProjectPrinter V0.1Alpha, Development. S Johnson 2024"
-            Case "GETDEVICES"
-                ' Serialize the device list to XML
-                Dim serializer As New XmlSerializer(GetType(List(Of parmStruct)))
-                Using sw As New StringWriter()
-                    serializer.Serialize(sw, GlobalParms)
-                    Return sw.ToString()
-                End Using
+                Return "ProjectPrinter V0.1Alpha, Development. 2024"
+            Case "SHOW_DEVS"
+                Return DeviceList()
+            Case "UPDATE_DEVS"
+                SaveDevices()
+                Return "Device list updated with current values."
+            Case "LOAD_DEVS"
+                LoadDevices()
+                Return "Device list loaded from stored configuration."
         End Select
         Return String.Format(NoCommand, input)
     End Function
