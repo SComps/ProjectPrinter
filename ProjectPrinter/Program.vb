@@ -16,34 +16,7 @@ Public Class parmStruct
     Public value As String
 End Class
 
-Public Class Devs
-    Public Enum DvType
-        DT_PRINTER
-        DT_READER
-    End Enum
 
-    Public Enum CNType
-        CN_SOCKDEV
-        CN_FILE
-        CN_PHYSICAL
-    End Enum
-
-    Public Enum OSType
-        OS_MVS38J
-        OS_VMS
-        OS_MPE
-        OS_OTHER
-    End Enum
-
-    Public DevName As String
-    Public DevDescription As String
-    Public DevType As Integer
-    Public ConnType As Integer
-    Public DevDest As String
-    Public OS As Integer
-    Public Auto As Boolean
-    Public PDF As Boolean
-End Class
 Module Program
 
     Const parmDefined As String = "Defined parameter '{0}' as '{1}'"
@@ -221,7 +194,7 @@ Module Program
 
         Try
             listener.Start()
-            Log($"Listening on port {cmdPort}...")
+            Log($"Remote management async server started on port {cmdPort}")
 
             While True
                 ' Accept incoming client connections asynchronously
@@ -243,7 +216,9 @@ Module Program
                 Dim stream As NetworkStream = client.GetStream()
                 Dim reader As New StreamReader(stream, Encoding.UTF8)
                 Dim writer As New StreamWriter(stream, Encoding.UTF8) With {.AutoFlush = True}
-
+                Await writer.WriteLineAsync(vbCrLf & "ProjectPrinter Remote Management.")
+                Await writer.WriteLineAsync("Commands are CASE SENSITIVE" & vbCrLf)
+                Await writer.WriteLineAsync("STOP to disconnect, SHUTDOWN to terminate server (not case sensitive)")
                 Log("Waiting for complete lines from the client...")
                 While client.Connected
                     Await writer.WriteAsync(">>>")
