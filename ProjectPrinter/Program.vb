@@ -16,7 +16,24 @@ Public Class parmStruct
     Public value As String
 End Class
 
+Public Enum DvType
+    DT_PRINTER
+    DT_READER
+End Enum
 
+Public Enum CNType
+    CN_SOCKDEV
+    CN_FILE
+    CN_PHYSICAL
+End Enum
+
+
+Public Enum OSType
+    OS_MVS38J
+    OS_VMS
+    OS_MPE
+    OS_OTHER
+End Enum
 Module Program
 
     Const parmDefined As String = "Defined parameter '{0}' as '{1}'"
@@ -42,6 +59,18 @@ Module Program
             'Process the parameters
             ProcessParms(GlobalParms)
         End If
+
+        ' Debugging dev
+        Dim myDev As New devs
+        myDev.DevName = "ALPHAVAX"
+        myDev.DevDescription = "ALPHA FREEAXP PRINTER"
+        myDev.OS = OSType.OS_VMS
+        myDev.DevType = DvType.DT_PRINTER
+        myDev.ConnType = CNType.CN_SOCKDEV
+        myDev.DevDest = "localhost:9001"
+        myDev.Auto = False
+        myDev.PDF = True
+        DevList.Add(myDev)
 
         If cmdPort = "0" Then
             Log("Not Listening for a remote controller.")
@@ -155,6 +184,11 @@ Module Program
         DevList = serializer.Deserialize(xmlStream)
         xmlStream.Close()
         Log("Remote management loading device list from configuration.")
+        Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
+        For Each d As devs In DevList
+            Log("Initializing device: " & d.DevDescription)
+            d.Connect()
+        Next
     End Sub
 
     Sub SaveDevices()
