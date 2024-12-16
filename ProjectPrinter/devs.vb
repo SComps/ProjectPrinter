@@ -1,8 +1,11 @@
-﻿Imports System.ComponentModel.Design
+﻿Imports System.ComponentModel
+Imports System.ComponentModel.Design
 Imports System.IO
 Imports System.Net.Http
 Imports System.Net.Sockets
 Imports System.Runtime.CompilerServices
+Imports System.Runtime.Serialization
+Imports System.Runtime.Serialization.Json
 Imports System.Text
 Imports System.Threading
 
@@ -88,7 +91,7 @@ Public Class devs
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
                     'Log(recd & " Bytes Received.")
                     Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
-                    dataBuilder.Append(ReceivedPart)
+                    dataBuilder.Append(receivedPart)
                     ' Wait 3 seconds to see if more data arrives.
                     If clientStream.DataAvailable Then
                         'No need to wait
@@ -154,8 +157,14 @@ Public Class devs
 
     Private Async Function ProcessDocument(doc As List(Of String)) As Task
         If doc.Count > 4 Then
-            ' For now we're just going to save it to a file.  Ultimately really process it.
-            Dim filename As String = DevName & Now.Ticks & ".txt"
+            ' For now we're just going to save it to a file.  Ultimately really process it
+            Dim JobID, JobName, UserID As String
+            Dim vals = VMS_ExtractJobInformation(doc)
+            JobID = vals.JobId
+            JobName = vals.JobName
+            UserID = vals.User
+            Dim fnFmt As String = "PRT-{0}-{1}-{2}.txt"
+            Dim filename As String = String.Format(fnFmt, UserID, JobID, JobName)
             Dim oStream As New StreamWriter(filename)
             For Each l As String In doc
                 oStream.Write(l)
@@ -167,5 +176,41 @@ Public Class devs
             Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
         End If
     End Function
+
+    Private Function IsTrailerPage(lines As String()) As Boolean
+        ' Check if the trailer contains "COMPLETED ON" indicating job completion
+        Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
+    End Function
+
+    Private Function VMS_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Dim GotInfo As Boolean = False
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log("Processing " & lines.Count & " lines for job information.")
+        For Each line In lines
+            line = line.ToUpper
+            ' Toward the end of the Trailer page all of our information is available
+            ' on a single line beginning with "Job"
+            ' Indices 1,2 And 16 should hold this information.
+            If line.Trim.StartsWith("JOB") Then
+                'This might be it!
+                Dim parts As String() = line.Split(" ")
+                jobName = parts(1)
+                jobId = parts(2)
+                user = parts(16)
+                jobId = jobId.Replace("(", "")
+                jobId = jobId.Replace(")", "")
+                GotInfo = True
+            End If
+        Next
+        If Not GotInfo Then
+            jobName = "UNKNOWN"
+            jobId = Now.ToShortTimeString
+            user = DevName
+        End If
+        Return (jobName, jobId, user)
+    End Function
+
 
 End Class
