@@ -54,15 +54,15 @@ Public Class devs
         _cancellationTokenSource = New CancellationTokenSource()
 
         Try
-            Console.WriteLine("Connecting to server...")
+            Program.Log("Connecting to server...")
             Await client.ConnectAsync(remoteHost, remotePort)
             clientStream = client.GetStream()
-            Console.WriteLine("Connected to server.")
+            Program.Log("Connected to server.")
 
             ' Start receiving data
             Await ReceiveDataAsync(_cancellationTokenSource.Token)
         Catch ex As Exception
-            Console.WriteLine($"Error: {ex.Message}")
+            Program.Log($"Error: {ex.Message}")
             Throw
         Finally
             Disconnect()
@@ -71,55 +71,69 @@ Public Class devs
 
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
-        Dim buffer(1024 - 1) As Byte
+        Dim buffer((4096) As Byte   ' Set up a 4K buffer which should be large enough to handle even the fastest connection.
+        Log(String.Format("Initializing receive buffer with {0:N0} bytes.", buffer.Length))
         Dim dataBuilder As New StringBuilder()
 
         Try
             While Not cancellationToken.IsCancellationRequested
-                ' Check for incoming data
-                If clientStream.DataAvailable Then
-                    Dim bytesRead As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                    If bytesRead = 0 Then
-                        ' Server closed the connection
-                        Console.WriteLine("Server closed the connection.")
-                        Exit While
-                    End If
+                ' Read incoming data
+                Dim bytesRead As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                If bytesRead = 0 Then
+                    ' Server closed the connection
+                    Program.Log("Server closed the connection.")
 
-                    ' Decode received bytes and append to the buffer
-                    Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, bytesRead)
-                    dataBuilder.Append(receivedPart)
-
-                    ' Process complete lines
-                    Dim fullData As String = dataBuilder.ToString()
-                    Dim lines As String() = fullData.Split(New String() {vbCrLf, vbLf}, StringSplitOptions.None)
-
-                    ' Output complete lines and retain any partial line
-                    For i As Integer = 0 To lines.Length - 2
-                        Console.WriteLine($"Received: {lines(i)}")
-                    Next
-
-                    ' Clear the builder, retaining any incomplete line
-                    dataBuilder.Clear()
-                    If Not fullData.EndsWith(vbCrLf) AndAlso Not fullData.EndsWith(vbLf) Then
-                        dataBuilder.Append(lines.Last())
-                    End If
-                Else
-                    ' Stream idle, process any remaining partial data
+                    ' Process any remaining data in the buffer as the last line
                     If dataBuilder.Length > 0 Then
-                        Console.WriteLine($"Received (idle): {dataBuilder.ToString()}")
-                        dataBuilder.Clear()
+                        Program.Log($"Received (last line): {dataBuilder.ToString()}")
                     End If
 
-                    ' Avoid busy-waiting; introduce a small delay
-                    Await Task.Delay(50, cancellationToken)
+                    Exit While
                 End If
+
+                ' Decode received bytes and append to the buffer
+                Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, bytesRead)
+                dataBuilder.Append(receivedPart)
+
+                ' Process complete lines (terminated by vbCr or FF)
+                Dim fullData As String = dataBuilder.ToString()
+                Dim lines As New List(Of String)()
+                Dim currentLine As New StringBuilder()
+
+                For Each c As Char In fullData
+                    If c = vbCr Then
+                        ' End the current line and start a new one
+                        lines.Add(currentLine.ToString())
+                        currentLine.Clear()
+                    ElseIf c = Chr(12) Then ' Form Feed (FF)
+                        ' End the current line, add FF to start a new one
+                        lines.Add(currentLine.ToString())
+                        currentLine.Clear()
+                        currentLine.Append(c)
+                    Else
+                        ' Add character to the current line
+                        currentLine.Append(c)
+                    End If
+                Next
+
+                ' Retain any partial line (not terminated by vbCr or FF)
+                dataBuilder.Clear()
+                dataBuilder.Append(currentLine.ToString())
+
+                ' Output complete lines
+                For Each line As String In lines
+                    If Not String.IsNullOrEmpty(line) Then
+                        Program.Log($"Received: {line}")
+                    End If
+                Next
             End While
         Catch ex As OperationCanceledException
-            Console.WriteLine("Receiving canceled.")
+            Program.Log("Receiving canceled.")
         Catch ex As Exception
-            Console.WriteLine($"Error receiving data: {ex.Message}")
+            Program.Log($"Error receiving data: {ex.Message}")
         End Try
     End Function
+
 
 
     ' Disconnects the client
@@ -128,9 +142,9 @@ Public Class devs
             _cancellationTokenSource?.Cancel()
             clientStream?.Close()
             client?.Close()
-            Console.WriteLine("Disconnected from server.")
+            Program.Log("Disconnected from server.")
         Catch ex As Exception
-            Console.WriteLine($"Error during disconnection: {ex.Message}")
+            Program.Log($"Error during disconnection: {ex.Message}")
         End Try
     End Sub
 
