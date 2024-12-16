@@ -77,7 +77,7 @@ Module Program
         Else
             Dim listenerTask = StartTcpListenerAsync()
         End If
-
+        LoadDevices()
         While Running
             ' Just sit hanging around thanks.
         End While

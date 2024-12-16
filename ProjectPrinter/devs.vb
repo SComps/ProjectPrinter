@@ -1,4 +1,5 @@
-﻿Imports System.IO
+﻿Imports System.ComponentModel.Design
+Imports System.IO
 Imports System.Net.Http
 Imports System.Net.Sockets
 Imports System.Runtime.CompilerServices
@@ -6,9 +7,6 @@ Imports System.Text
 Imports System.Threading
 
 Public Class devs
-
-
-
     Public DevName As String
     Public DevDescription As String
     Public DevType As Integer
@@ -24,6 +22,7 @@ Public Class devs
     Private clientReader As StreamReader
     Private clientWriter As StreamWriter 'Should never be needed but what the hay.
     Private _cancellationTokenSource As CancellationTokenSource
+    Private currentDocument As New List(Of String)
 
     Private Sub SplitDestination(dest As String)
         Dim thisHost As String
@@ -69,31 +68,34 @@ Public Class devs
         End Try
     End Function
 
+    Private Sub TaskSleep(seconds As Integer)
+        Dim delF As String = "[{0}] Data received, waiting {1} second for line to resume or settle."
+        Log(String.Format(delF, DevName, seconds))
+        Dim MyTime As DateTime = Now()
+        Do Until Now > MyTime.AddSeconds(seconds)
+            'Don't do anything
+        Loop
+    End Sub
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
-        Dim buffer((4096) As Byte   ' Set up a 4K buffer which should be large enough to handle even the fastest connection.
-        Log(String.Format("Initializing receive buffer with {0:N0} bytes.", buffer.Length))
+        Dim lastLineReceived As DateTime = Now()
+        Dim buffer(140) As Byte
         Dim dataBuilder As New StringBuilder()
 
         Try
             While Not cancellationToken.IsCancellationRequested
-                ' Read incoming data
-                Dim bytesRead As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                If bytesRead = 0 Then
-                    ' Server closed the connection
-                    Program.Log("Server closed the connection.")
-
-                    ' Process any remaining data in the buffer as the last line
-                    If dataBuilder.Length > 0 Then
-                        Program.Log($"Received (last line): {dataBuilder.ToString()}")
+                While clientStream.DataAvailable = True
+                    Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                    'Log(recd & " Bytes Received.")
+                    Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
+                    dataBuilder.Append(ReceivedPart)
+                    ' Wait 3 seconds to see if more data arrives.
+                    If clientStream.DataAvailable Then
+                        'No need to wait
+                    Else
+                        TaskSleep(1)
                     End If
-
-                    Exit While
-                End If
-
-                ' Decode received bytes and append to the buffer
-                Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, bytesRead)
-                dataBuilder.Append(receivedPart)
+                End While
 
                 ' Process complete lines (terminated by vbCr or FF)
                 Dim fullData As String = dataBuilder.ToString()
@@ -106,10 +108,10 @@ Public Class devs
                         lines.Add(currentLine.ToString())
                         currentLine.Clear()
                     ElseIf c = Chr(12) Then ' Form Feed (FF)
-                        ' End the current line, add FF to start a new one
-                        lines.Add(currentLine.ToString())
+                        ' End the current line, add FF on it'd own line and start a new one
+                        lines.Add(currentLine.ToString() & vbCrLf)
                         currentLine.Clear()
-                        currentLine.Append(c)
+                        currentLine.Append(c & vbCrLf)
                     Else
                         ' Add character to the current line
                         currentLine.Append(c)
@@ -123,18 +125,20 @@ Public Class devs
                 ' Output complete lines
                 For Each line As String In lines
                     If Not String.IsNullOrEmpty(line) Then
-                        Program.Log($"Received: {line}")
+                        currentDocument.Add(line)
                     End If
                 Next
+                If currentDocument.Count > 0 Then
+                    Await ProcessDocument(currentDocument)
+                    currentDocument.Clear()
+                End If
             End While
         Catch ex As OperationCanceledException
-            Program.Log("Receiving canceled.")
+            Log("Receiving canceled.")
         Catch ex As Exception
-            Program.Log($"Error receiving data: {ex.Message}")
+            Log($"Error receiving data: {ex.Message}")
         End Try
     End Function
-
-
 
     ' Disconnects the client
     Public Sub Disconnect()
@@ -147,5 +151,21 @@ Public Class devs
             Program.Log($"Error during disconnection: {ex.Message}")
         End Try
     End Sub
+
+    Private Async Function ProcessDocument(doc As List(Of String)) As Task
+        If doc.Count > 4 Then
+            ' For now we're just going to save it to a file.  Ultimately really process it.
+            Dim filename As String = DevName & Now.Ticks & ".txt"
+            Dim oStream As New StreamWriter(filename)
+            For Each l As String In doc
+                oStream.Write(l)
+            Next
+            Await oStream.FlushAsync
+            oStream.Close()
+            Log(String.Format("[{2}] {0} lines of output written to {1}", currentDocument.Count, filename, DevName))
+        Else
+            Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
+        End If
+    End Function
 
 End Class
