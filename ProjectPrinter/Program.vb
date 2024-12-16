@@ -1,10 +1,13 @@
 Imports System
+Imports System.ComponentModel
 Imports System.ComponentModel.DataAnnotations.Schema
+Imports System.ComponentModel.Design
 Imports System.Data
 Imports System.Diagnostics.Tracing
 Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
+Imports System.Net.WebSockets
 Imports System.Reflection.Metadata.Ecma335
 Imports System.Runtime.InteropServices
 Imports System.Runtime.Intrinsics
@@ -40,7 +43,7 @@ Module Program
     Const parmError As String = "Parameter error '{0]' is defined without a value"
     Const parmInvalid As String = "Invalid parameter {0}:{1}"
 
-    Public DevList As New List(Of Devs)
+    Public DevList As New List(Of devs)
     Public GlobalParms As New List(Of parmStruct)
     Public configFile As String = ""
     Public cmdPort As Integer = 0
@@ -49,7 +52,7 @@ Module Program
 
     Public Running As Boolean = True
 
-    Sub Main(args As String())
+    Public Function Main(args As String()) As Integer
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
             'This should absolutely never happen, but hey.
@@ -82,7 +85,8 @@ Module Program
             ' Just sit hanging around thanks.
         End While
         ShutDown()
-    End Sub
+        Return 0
+    End Function
 
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
@@ -171,7 +175,7 @@ Module Program
     Sub ShutDown()
         ' Do everything needed to terminate the process here
         Log("Shutdown requested")
-        End
+        Running = False
     End Sub
 
     Sub LoadDevices()
@@ -179,7 +183,7 @@ Module Program
         DevList.Clear()
         Log("Remote management clearing device list.")
         ' Reload from the file
-        Dim serializer As New XmlSerializer(GetType(List(Of Devs)))
+        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
         Dim xmlStream As New StreamReader("devices.cfg")
         DevList = serializer.Deserialize(xmlStream)
         xmlStream.Close()
@@ -193,7 +197,7 @@ Module Program
 
     Sub SaveDevices()
         ' Serialize the device list to XML
-        Dim serializer As New XmlSerializer(GetType(List(Of Devs)))
+        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
         Dim xmlStream As New StreamWriter("devices.cfg")
         Using sw As New StringWriter()
             serializer.Serialize(sw, DevList)
@@ -210,7 +214,7 @@ Module Program
         out = out & StrDup(79, "-") & vbCrLf
         out = out & String.Format(outF, "DEVICE", "DEV_TYPE", "CONN_TYPE", "DESTINATION")
         out = out & StrDup(79, "-") & vbCrLf
-        For Each d As Devs In DevList
+        For Each d As devs In DevList
             out = out & String.Format(outF, d.DevName, d.DevType, d.ConnType, d.DevDest)
         Next
         out = out & StrDup(79, "-") & vbCrLf & vbCrLf
@@ -251,8 +255,6 @@ Module Program
                 Dim reader As New StreamReader(stream, Encoding.UTF8)
                 Dim writer As New StreamWriter(stream, Encoding.UTF8) With {.AutoFlush = True}
                 Await writer.WriteLineAsync(vbCrLf & "ProjectPrinter Remote Management.")
-                Await writer.WriteLineAsync("Commands are CASE SENSITIVE" & vbCrLf)
-                Await writer.WriteLineAsync("STOP to disconnect, SHUTDOWN to terminate server (not case sensitive)")
                 Log("Waiting for complete lines from the client...")
                 While client.Connected
                     Await writer.WriteAsync(">>>")
@@ -284,7 +286,10 @@ Module Program
     Function ProcessLine(input As String) As String
         ' Process input from the remote client
         Dim NoCommand As String = "ERROR: '{0}' Invalid command. Please review the documentation."
-        Select Case input.Trim
+        ' Break input into words separated by a space or comma.
+        Dim parsed As String() = input.Split({" ", ","})
+        Dim cmd As String = parsed(0).ToUpper
+        Select Case cmd
             Case "HELLO"
                 Return "ProjectPrinter V0.1Alpha, Development. 2024"
             Case "SHOW_DEVS"
@@ -295,7 +300,38 @@ Module Program
             Case "LOAD_DEVS"
                 LoadDevices()
                 Return "Device list loaded from stored configuration."
+            Case "HELP"
+                Return ShowHelp()
         End Select
         Return String.Format(NoCommand, input)
+    End Function
+
+    Function ShowHelp() As String
+        Dim hlp As New StringBuilder
+        hlp.AppendLine("ProjectPrinter - 2024,2025 provided as true open source.  As in here's")
+        hlp.AppendLine("the source, do what you want with it.  Be respectful and honorable.  If you")
+        hlp.AppendLine("use this commercially, please at least try to help the authors out a little.")
+        hlp.AppendLine("The world is an expensive, dark place.  Thanks Biden!  Your a freakin' pip.")
+        hlp.AppendLine("")
+        hlp.AppendLine("COMMAND HELP")
+        hlp.AppendLine("------- ----")
+        hlp.AppendLine("")
+        hlp.AppendLine("HELLO       - Returns version information")
+        hlp.AppendLine("SHOW_DEVS   - Displays a list of configured devices.")
+        hlp.AppendLine("UPDATE_DEVS - Writes the current device configuration to a file.")
+        hlp.AppendLine("LOAD_DEVS   - Loads the device list from the configuration file, and activates")
+        hlp.AppendLine("              the devices if necessary.")
+        hlp.AppendLine("STOP        - Disconnects the remote management client (this screen)")
+        hlp.AppendLine("SHUTDOWN    - Terminates the ProjectPrinter process.")
+        hlp.AppendLine("HELP        -  Really?  Display this message.")
+        hlp.AppendLine("")
+        hlp.AppendLine("This management connection is rudimentary at best.  There is no editting")
+        hlp.AppendLine("features written into the code.  That would be a waste of coding effort")
+        hlp.AppendLine("when there are much more important things to be done, like making it do what")
+        hlp.AppendLine("it's intended to do as fast as we can make it happen.  Type your commands")
+        hlp.AppendLine("carefully--or type them again... correctly.")
+        hlp.AppendLine("")
+        hlp.AppendLine("As more commands become available, they will be documented here.")
+        Return hlp.ToString()
     End Function
 End Module
