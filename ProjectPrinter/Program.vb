@@ -63,18 +63,11 @@ Module Program
             'Process the parameters
             ProcessParms(GlobalParms)
         End If
+        If Not File.Exists("devices.cfg") Then
+            Dim fs As FileStream = File.Open("devices.cfg", FileMode.Create)
+            fs.Close()
+        End If
 
-        ' Debugging dev
-        Dim myDev As New devs
-        myDev.DevName = "ALPHAVAX"
-        myDev.DevDescription = "ALPHA FREEAXP PRINTER"
-        myDev.OS = OSType.OS_VMS
-        myDev.DevType = DvType.DT_PRINTER
-        myDev.ConnType = CNType.CN_SOCKDEV
-        myDev.DevDest = "localhost:9001"
-        myDev.Auto = False
-        myDev.PDF = True
-        DevList.Add(myDev)
 
         If cmdPort = "0" Then
             Log("Not Listening for a remote controller.")
