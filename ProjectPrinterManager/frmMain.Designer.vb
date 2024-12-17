@@ -23,8 +23,8 @@ Partial Class frmMain
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Label1 = New Label()
-        TextBox1 = New TextBox()
-        Button1 = New Button()
+        txtHost = New TextBox()
+        cmdConnect = New Button()
         MenuStrip1 = New MenuStrip()
         ServerToolStripMenuItem = New ToolStripMenuItem()
         LoadServerConfigurationToolStripMenuItem = New ToolStripMenuItem()
@@ -68,6 +68,7 @@ Partial Class frmMain
         ' 
         ' Label1
         ' 
+        Label1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Label1.AutoSize = True
         Label1.Location = New Point(22, 37)
         Label1.Name = "Label1"
@@ -75,21 +76,23 @@ Partial Class frmMain
         Label1.TabIndex = 0
         Label1.Text = "Server:"
         ' 
-        ' TextBox1
+        ' txtHost
         ' 
-        TextBox1.Location = New Point(86, 35)
-        TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(382, 30)
-        TextBox1.TabIndex = 1
+        txtHost.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        txtHost.Location = New Point(86, 35)
+        txtHost.Name = "txtHost"
+        txtHost.Size = New Size(382, 30)
+        txtHost.TabIndex = 1
         ' 
-        ' Button1
+        ' cmdConnect
         ' 
-        Button1.Location = New Point(482, 31)
-        Button1.Name = "Button1"
-        Button1.Size = New Size(85, 36)
-        Button1.TabIndex = 2
-        Button1.Text = "Connect"
-        Button1.UseVisualStyleBackColor = True
+        cmdConnect.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        cmdConnect.Location = New Point(482, 31)
+        cmdConnect.Name = "cmdConnect"
+        cmdConnect.Size = New Size(85, 36)
+        cmdConnect.TabIndex = 2
+        cmdConnect.Text = "Connect"
+        cmdConnect.UseVisualStyleBackColor = True
         ' 
         ' MenuStrip1
         ' 
@@ -152,6 +155,7 @@ Partial Class frmMain
         ' 
         ' TabControl1
         ' 
+        TabControl1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         TabControl1.Controls.Add(TabPage1)
         TabControl1.Controls.Add(TabPage2)
         TabControl1.Location = New Point(22, 82)
@@ -180,6 +184,7 @@ Partial Class frmMain
         ' 
         ' Label5
         ' 
+        Label5.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Label5.Font = New Font("Segoe UI", 10.2F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Label5.ForeColor = Color.Firebrick
         Label5.Location = New Point(38, 173)
@@ -191,6 +196,7 @@ Partial Class frmMain
         ' 
         ' ComboBox1
         ' 
+        ComboBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         ComboBox1.FormattingEnabled = True
         ComboBox1.Items.AddRange(New Object() {"None (silent)", "Default", "File (define)"})
         ComboBox1.Location = New Point(163, 114)
@@ -200,6 +206,7 @@ Partial Class frmMain
         ' 
         ' Label4
         ' 
+        Label4.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Label4.AutoSize = True
         Label4.Location = New Point(38, 114)
         Label4.Name = "Label4"
@@ -209,6 +216,7 @@ Partial Class frmMain
         ' 
         ' TextBox3
         ' 
+        TextBox3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TextBox3.Location = New Point(163, 66)
         TextBox3.Name = "TextBox3"
         TextBox3.Size = New Size(140, 30)
@@ -216,6 +224,7 @@ Partial Class frmMain
         ' 
         ' Label3
         ' 
+        Label3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Label3.AutoSize = True
         Label3.Location = New Point(38, 69)
         Label3.Name = "Label3"
@@ -225,15 +234,17 @@ Partial Class frmMain
         ' 
         ' Button2
         ' 
-        Button2.Location = New Point(655, 19)
+        Button2.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        Button2.Location = New Point(670, 12)
         Button2.Name = "Button2"
-        Button2.Size = New Size(94, 29)
+        Button2.Size = New Size(94, 43)
         Button2.TabIndex = 2
         Button2.Text = "Browse"
         Button2.UseVisualStyleBackColor = True
         ' 
         ' TextBox2
         ' 
+        TextBox2.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TextBox2.Location = New Point(163, 19)
         TextBox2.Name = "TextBox2"
         TextBox2.Size = New Size(486, 30)
@@ -241,6 +252,7 @@ Partial Class frmMain
         ' 
         ' Label2
         ' 
+        Label2.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Label2.AutoSize = True
         Label2.Location = New Point(38, 22)
         Label2.Name = "Label2"
@@ -265,10 +277,10 @@ Partial Class frmMain
         TabPage2.Controls.Add(TextBox4)
         TabPage2.Controls.Add(Label6)
         TabPage2.Controls.Add(ListBox1)
-        TabPage2.Location = New Point(4, 32)
+        TabPage2.Location = New Point(4, 29)
         TabPage2.Name = "TabPage2"
         TabPage2.Padding = New Padding(3)
-        TabPage2.Size = New Size(838, 387)
+        TabPage2.Size = New Size(838, 390)
         TabPage2.TabIndex = 1
         TabPage2.Text = "Devices"
         TabPage2.UseVisualStyleBackColor = True
@@ -398,10 +410,11 @@ Partial Class frmMain
         ' 
         ' ListBox1
         ' 
+        ListBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         ListBox1.FormattingEnabled = True
         ListBox1.Location = New Point(19, 18)
         ListBox1.Name = "ListBox1"
-        ListBox1.Size = New Size(321, 349)
+        ListBox1.Size = New Size(321, 326)
         ListBox1.TabIndex = 0
         ' 
         ' frmMain
@@ -411,8 +424,8 @@ Partial Class frmMain
         BackColor = Color.PaleGoldenrod
         ClientSize = New Size(900, 517)
         Controls.Add(TabControl1)
-        Controls.Add(Button1)
-        Controls.Add(TextBox1)
+        Controls.Add(cmdConnect)
+        Controls.Add(txtHost)
         Controls.Add(Label1)
         Controls.Add(MenuStrip1)
         Font = New Font("Segoe UI", 10.2F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -432,8 +445,8 @@ Partial Class frmMain
     End Sub
 
     Friend WithEvents Label1 As Label
-    Friend WithEvents TextBox1 As TextBox
-    Friend WithEvents Button1 As Button
+    Friend WithEvents txtHost As TextBox
+    Friend WithEvents cmdConnect As Button
     Friend WithEvents MenuStrip1 As MenuStrip
     Friend WithEvents ServerToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents LoadServerConfigurationToolStripMenuItem As ToolStripMenuItem

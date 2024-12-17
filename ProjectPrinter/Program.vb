@@ -298,6 +298,7 @@ Module Program
                 Return ShowHelp()
             Case "GUI_SEND"
                 ' Sends all configuration data for the GUI client.
+                Return GUI_SendDev()
             Case "GUI_RECV"
                 ' Receives complete configuration from GUI client.
             Case "GUI_RDEV"
@@ -339,5 +340,17 @@ Module Program
         hlp.AppendLine("")
         hlp.AppendLine("As more commands become available, they will be documented here.")
         Return hlp.ToString()
+    End Function
+
+    Private Function GUI_SendDev()
+        ' Serialize the device list to XML
+        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
+        Dim outString As String = ""
+        'Dim xmlStream As New StreamWriter("devices.cfg")
+        Using sw As New StringWriter()
+            serializer.Serialize(sw, DevList)
+            outString = sw.ToString()
+        End Using
+        Return outString
     End Function
 End Module
