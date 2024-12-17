@@ -8,6 +8,7 @@ Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Net.WebSockets
+Imports System.Reflection
 Imports System.Reflection.Metadata.Ecma335
 Imports System.Runtime.InteropServices
 Imports System.Runtime.Intrinsics
@@ -302,6 +303,18 @@ Module Program
                 Return "Device list loaded from stored configuration."
             Case "HELP"
                 Return ShowHelp()
+            Case "GUI_SEND"
+                ' Sends all configuration data for the GUI client.
+            Case "GUI_RECV"
+                ' Receives complete configuration from GUI client.
+            Case "GUI_RDEV"
+                ' Receives Device configuration for all devices.
+            Case "RESTART"
+                'Restart
+                Dim asm As Assembly = Assembly.GetExecutingAssembly()
+                Dim asmName As String = asm.GetName().Name() & ".exe"
+                Process.Start(System.Environment.CurrentDirectory & "\" & asmName)
+                Environment.Exit(0)
         End Select
         Return String.Format(NoCommand, input)
     End Function
