@@ -1,20 +1,14 @@
-Imports System
-Imports System.ComponentModel
-Imports System.ComponentModel.DataAnnotations.Schema
-Imports System.ComponentModel.Design
-Imports System.Data
-Imports System.Diagnostics.Tracing
 Imports System.IO
 Imports System.Net
+Imports System.Net.Mime.MediaTypeNames
 Imports System.Net.Sockets
-Imports System.Net.WebSockets
 Imports System.Reflection
-Imports System.Reflection.Metadata.Ecma335
-Imports System.Runtime.InteropServices
-Imports System.Runtime.Intrinsics
-Imports System.Security.AccessControl
+Imports System.Runtime
 Imports System.Text
 Imports System.Xml.Serialization
+Imports PdfSharp
+Imports PdfSharp.Drawing
+Imports PdfSharp.Pdf
 Public Class parmStruct
     Public arg As String
     Public value As String
@@ -353,4 +347,6 @@ Module Program
         End Using
         Return outString
     End Function
+
+
 End Module

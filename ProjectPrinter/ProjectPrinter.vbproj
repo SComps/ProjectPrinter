@@ -4,8 +4,18 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2024.12.17.165</AssemblyVersion>
-    <FileVersion>2024.12.17.165</FileVersion>
+    <AssemblyVersion>2024.12.22.173</AssemblyVersion>
+    <FileVersion>2024.12.22.173</FileVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PDFsharp" Version="6.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="greenbar.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>

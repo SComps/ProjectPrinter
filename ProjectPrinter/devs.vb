@@ -3,11 +3,14 @@ Imports System.ComponentModel.Design
 Imports System.IO
 Imports System.Net.Http
 Imports System.Net.Sockets
+Imports System.Runtime
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.Serialization
 Imports System.Runtime.Serialization.Json
 Imports System.Text
 Imports System.Threading
+Imports PdfSharp.Drawing
+Imports PdfSharp.Pdf
 
 Public Class devs
     Public DevName As String
@@ -164,14 +167,17 @@ Public Class devs
             JobName = vals.JobName
             UserID = vals.User
             Dim fnFmt As String = "PRT-{0}-{1}-{2}.txt"
+            Dim fnPdf As String = "PRT-{0}-{1}-{2}.pdf"
             Dim filename As String = String.Format(fnFmt, UserID, JobID, JobName)
-            Dim oStream As New StreamWriter(filename)
-            For Each l As String In doc
-                oStream.Write(l)
-            Next
-            Await oStream.FlushAsync
-            oStream.Close()
-            Log(String.Format("[{2}] {0} lines of output written to {1}", currentDocument.Count, filename, DevName))
+            Dim pdfName As String = String.Format(fnPdf, UserID, JobID, JobName)
+            'Dim oStream As New StreamWriter(filename)
+            'For Each l As String In doc
+            ' oStream.Write(l)
+            ' Next
+            'Await oStream.FlushAsync
+            'oStream.Close()
+            'Log(String.Format("[{2}] {0} lines of output written to {1}", currentDocument.Count, filename, DevName))
+            CreatePDF(JobName, doc, PdfName)
         Else
             Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
         End If
@@ -212,5 +218,73 @@ Public Class devs
         Return (jobName, jobId, user)
     End Function
 
+    Public Function CreatePDF(title As String, outList As List(Of String), filename As String) As String
+        Dim JobNumber As String = ""
+        Dim JobName As String = ""
+        Dim doc As New PdfSharp.Pdf.PdfDocument
+        doc.Info.Title = title
+        Dim page As PdfPage = doc.AddPage()
+        page.Orientation = PdfSharp.PageOrientation.Landscape
+        ' Get an XGraphics object for drawing
+        Dim gfx As XGraphics = XGraphics.FromPdfPage(page)
+        ' Create a font
+
+        Dim font As New XFont("Lucida Console", 8, XFontStyleEx.Regular)
+        Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
+        gfx.DrawImage(bkgrd, 0, 0)
+        ' Set initial coordinates for text
+        Dim x As Double = 30
+        Dim y As Double = 53
+        Dim newHeight As Double = page.Height.Point / 66
+        Dim lineHeight As Double = (newHeight - 0.55)
+        ' Calculate the maximum number of lines that can fit on a page
+        Dim maxLinesPerPage As Integer = CInt((page.Height.Point - y) / lineHeight)
+
+        ' Loop through the list of strings and draw each on a new line
+        Dim currentLine As Integer = 0
+
+        For Each line As String In outList
+
+            If (line(0) = vbFormFeed) Then
+                ' Add a new page
+                page = doc.AddPage()
+                page.Orientation = PdfSharp.PageOrientation.Landscape
+                gfx = XGraphics.FromPdfPage(page)
+                gfx.DrawImage(bkgrd, 0, 0)
+                y = 53 ' Reset the y-coordinate
+                currentLine = 0
+                ' For MPE we'll allow a half inch top margin and let MPE handle
+                ' the bottom.
+            End If
+            line = line.Replace(vbFormFeed, "") 'We've already dealt with the FormFeeds
+            line = line.Replace(vbCr, "") 'Get rid of CR
+            line = line.Replace(vbLf, "") 'Get rid of LF (we may deal with them later)
+            If line = "" Then line = " "  ' Make sure the line contains at least *something*
+            ' If the current line exceeds maxLinesPerPage, create a new page
+            If currentLine > 0 AndAlso currentLine Mod maxLinesPerPage = 0 Then
+                ' Add a new page
+                page = doc.AddPage()
+                page.Orientation = PdfSharp.PageOrientation.Landscape
+                gfx = XGraphics.FromPdfPage(page)
+                y = 0 ' Reset the y-coordinate
+                currentLine = 0
+                For i = 1 To 5
+                    gfx.DrawString(" ", font, XBrushes.Black, New XRect(x, y, page.Width.Point, page.Height.Point), XStringFormats.TopLeft)
+                    y += lineHeight ' Move to the next line
+                    currentLine += 1
+                Next
+            End If
+
+            ' Draw the current line
+            gfx.DrawString(line, font, XBrushes.Black, New XRect(x, y, page.Width.Point, page.Height.Point), XStringFormats.TopLeft)
+            y += lineHeight ' Move to the next line
+            currentLine += 1
+        Next
+        Dim outputFile As String = filename
+        Log(String.Format("Wrote {0} pages for {1}" & vbCrLf, doc.PageCount, title))
+        doc.Save(outputFile)
+        doc.Close()
+        Return outputFile
+    End Function
 
 End Class
