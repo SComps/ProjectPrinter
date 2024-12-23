@@ -5,6 +5,7 @@ Imports System.Net.Sockets
 Imports System.Reflection
 Imports System.Runtime
 Imports System.Text
+Imports System.Text.Json
 Imports System.Xml.Serialization
 Imports PdfSharp
 Imports PdfSharp.Drawing
@@ -166,6 +167,13 @@ Module Program
         Running = False
     End Sub
 
+    Public Function SerializeToXml(Of T)(obj As T) As String
+        Dim serializer As New XmlSerializer(GetType(T))
+        Using stringWriter As New StringWriter()
+            serializer.Serialize(stringWriter, obj)
+            Return stringWriter.ToString()
+        End Using
+    End Function
     Sub LoadDevices()
         ' Unload all devices.
         DevList.Clear()
@@ -277,6 +285,7 @@ Module Program
         ' Break input into words separated by a space or comma.
         Dim parsed As String() = input.Split({" ", ","})
         Dim cmd As String = parsed(0).ToUpper
+        Log("Remote-->" & cmd)
         Select Case cmd
             Case "HELLO"
                 Return "ProjectPrinter V0.1Alpha, Development. 2024"
@@ -291,10 +300,12 @@ Module Program
             Case "HELP"
                 Return ShowHelp()
             Case "GUI_SEND"
-                ' Sends all configuration data for the GUI client.
+                ' Sends configuration data to GUI client
+            Case "GUI_SDEV"
+                ' Sends device data for the GUI client.
                 Return GUI_SendDev()
             Case "GUI_RECV"
-                ' Receives complete configuration from GUI client.
+                ' Receives configuration from GUI client.
             Case "GUI_RDEV"
                 ' Receives Device configuration for all devices.
             Case "RESTART"
@@ -336,7 +347,7 @@ Module Program
         Return hlp.ToString()
     End Function
 
-    Private Function GUI_SendDev()
+    Private Function oldGUI_SendDev()
         ' Serialize the device list to XML
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
         Dim outString As String = ""
@@ -345,8 +356,20 @@ Module Program
             serializer.Serialize(sw, DevList)
             outString = sw.ToString()
         End Using
+        outString = outString & vbCrLf & "[[EOD]]"
         Return outString
     End Function
+
+    Private Function GUI_SendDev()
+        Dim outFmt As String = "DEV|{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}" & vbCrLf
+        Dim sb As New StringBuilder
+        For Each d In DevList
+            sb.Append(String.Format(outFmt, d.DevName, d.DevDescription, d.DevType, d.ConnType, d.DevDest, d.OS, d.Auto, d.PDF))
+        Next
+        sb.Append("[[EOD]]")
+        Return sb.ToString
+    End Function
+
 
 
 End Module

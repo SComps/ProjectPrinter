@@ -24,7 +24,6 @@ Partial Class frmMain
     Private Sub InitializeComponent()
         Label1 = New Label()
         txtHost = New TextBox()
-        cmdConnect = New Button()
         MenuStrip1 = New MenuStrip()
         ServerToolStripMenuItem = New ToolStripMenuItem()
         LoadServerConfigurationToolStripMenuItem = New ToolStripMenuItem()
@@ -45,21 +44,26 @@ Partial Class frmMain
         TextBox2 = New TextBox()
         Label2 = New Label()
         TabPage2 = New TabPage()
-        CheckBox2 = New CheckBox()
-        CheckBox1 = New CheckBox()
-        TextBox6 = New TextBox()
+        Button3 = New Button()
+        Button1 = New Button()
+        devPDF = New CheckBox()
+        devAuto = New CheckBox()
+        devDest = New TextBox()
         Label11 = New Label()
-        ComboBox4 = New ComboBox()
+        devConn = New ComboBox()
         Label10 = New Label()
-        ComboBox3 = New ComboBox()
+        devOS = New ComboBox()
         Label9 = New Label()
-        ComboBox2 = New ComboBox()
+        devType = New ComboBox()
         Label8 = New Label()
-        TextBox5 = New TextBox()
+        devDescription = New TextBox()
         Label7 = New Label()
-        TextBox4 = New TextBox()
+        devName = New TextBox()
         Label6 = New Label()
-        ListBox1 = New ListBox()
+        ListOfDevs = New ListBox()
+        getButton = New Button()
+        putButton = New Button()
+        DataLight = New Label()
         MenuStrip1.SuspendLayout()
         TabControl1.SuspendLayout()
         TabPage1.SuspendLayout()
@@ -83,16 +87,6 @@ Partial Class frmMain
         txtHost.Name = "txtHost"
         txtHost.Size = New Size(382, 30)
         txtHost.TabIndex = 1
-        ' 
-        ' cmdConnect
-        ' 
-        cmdConnect.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        cmdConnect.Location = New Point(482, 31)
-        cmdConnect.Name = "cmdConnect"
-        cmdConnect.Size = New Size(85, 36)
-        cmdConnect.TabIndex = 2
-        cmdConnect.Text = "Connect"
-        cmdConnect.UseVisualStyleBackColor = True
         ' 
         ' MenuStrip1
         ' 
@@ -262,55 +256,75 @@ Partial Class frmMain
         ' 
         ' TabPage2
         ' 
-        TabPage2.Controls.Add(CheckBox2)
-        TabPage2.Controls.Add(CheckBox1)
-        TabPage2.Controls.Add(TextBox6)
+        TabPage2.Controls.Add(Button3)
+        TabPage2.Controls.Add(Button1)
+        TabPage2.Controls.Add(devPDF)
+        TabPage2.Controls.Add(devAuto)
+        TabPage2.Controls.Add(devDest)
         TabPage2.Controls.Add(Label11)
-        TabPage2.Controls.Add(ComboBox4)
+        TabPage2.Controls.Add(devConn)
         TabPage2.Controls.Add(Label10)
-        TabPage2.Controls.Add(ComboBox3)
+        TabPage2.Controls.Add(devOS)
         TabPage2.Controls.Add(Label9)
-        TabPage2.Controls.Add(ComboBox2)
+        TabPage2.Controls.Add(devType)
         TabPage2.Controls.Add(Label8)
-        TabPage2.Controls.Add(TextBox5)
+        TabPage2.Controls.Add(devDescription)
         TabPage2.Controls.Add(Label7)
-        TabPage2.Controls.Add(TextBox4)
+        TabPage2.Controls.Add(devName)
         TabPage2.Controls.Add(Label6)
-        TabPage2.Controls.Add(ListBox1)
-        TabPage2.Location = New Point(4, 29)
+        TabPage2.Controls.Add(ListOfDevs)
+        TabPage2.Location = New Point(4, 32)
         TabPage2.Name = "TabPage2"
         TabPage2.Padding = New Padding(3)
-        TabPage2.Size = New Size(838, 390)
+        TabPage2.Size = New Size(838, 387)
         TabPage2.TabIndex = 1
         TabPage2.Text = "Devices"
         TabPage2.UseVisualStyleBackColor = True
         ' 
-        ' CheckBox2
+        ' Button3
         ' 
-        CheckBox2.AutoSize = True
-        CheckBox2.Location = New Point(659, 332)
-        CheckBox2.Name = "CheckBox2"
-        CheckBox2.Size = New Size(137, 27)
-        CheckBox2.TabIndex = 5
-        CheckBox2.Text = "Generate PDF"
-        CheckBox2.UseVisualStyleBackColor = True
+        Button3.Location = New Point(130, 332)
+        Button3.Name = "Button3"
+        Button3.Size = New Size(94, 40)
+        Button3.TabIndex = 15
+        Button3.Text = "Cancel"
+        Button3.UseVisualStyleBackColor = True
         ' 
-        ' CheckBox1
+        ' Button1
         ' 
-        CheckBox1.AutoSize = True
-        CheckBox1.Location = New Point(370, 332)
-        CheckBox1.Name = "CheckBox1"
-        CheckBox1.Size = New Size(135, 27)
-        CheckBox1.TabIndex = 13
-        CheckBox1.Text = "Auto connect"
-        CheckBox1.UseVisualStyleBackColor = True
+        Button1.Location = New Point(19, 332)
+        Button1.Name = "Button1"
+        Button1.Size = New Size(94, 40)
+        Button1.TabIndex = 14
+        Button1.Text = "Update"
+        Button1.UseVisualStyleBackColor = True
         ' 
-        ' TextBox6
+        ' devPDF
         ' 
-        TextBox6.Location = New Point(372, 296)
-        TextBox6.Name = "TextBox6"
-        TextBox6.Size = New Size(426, 30)
-        TextBox6.TabIndex = 12
+        devPDF.AutoSize = True
+        devPDF.Location = New Point(659, 332)
+        devPDF.Name = "devPDF"
+        devPDF.Size = New Size(137, 27)
+        devPDF.TabIndex = 5
+        devPDF.Text = "Generate PDF"
+        devPDF.UseVisualStyleBackColor = True
+        ' 
+        ' devAuto
+        ' 
+        devAuto.AutoSize = True
+        devAuto.Location = New Point(370, 332)
+        devAuto.Name = "devAuto"
+        devAuto.Size = New Size(135, 27)
+        devAuto.TabIndex = 13
+        devAuto.Text = "Auto connect"
+        devAuto.UseVisualStyleBackColor = True
+        ' 
+        ' devDest
+        ' 
+        devDest.Location = New Point(372, 296)
+        devDest.Name = "devDest"
+        devDest.Size = New Size(426, 30)
+        devDest.TabIndex = 12
         ' 
         ' Label11
         ' 
@@ -321,15 +335,15 @@ Partial Class frmMain
         Label11.TabIndex = 11
         Label11.Text = "Remote location"
         ' 
-        ' ComboBox4
+        ' devConn
         ' 
-        ComboBox4.AutoCompleteCustomSource.AddRange(New String() {"TCP/IP SockDev", "Flat File"})
-        ComboBox4.FormattingEnabled = True
-        ComboBox4.Items.AddRange(New Object() {"TCP/IP (sockdev)", "Flat file"})
-        ComboBox4.Location = New Point(481, 222)
-        ComboBox4.Name = "ComboBox4"
-        ComboBox4.Size = New Size(200, 31)
-        ComboBox4.TabIndex = 10
+        devConn.AutoCompleteCustomSource.AddRange(New String() {"TCP/IP SockDev", "Flat File"})
+        devConn.FormattingEnabled = True
+        devConn.Items.AddRange(New Object() {"TCP/IP (sockdev)", "Flat file"})
+        devConn.Location = New Point(481, 222)
+        devConn.Name = "devConn"
+        devConn.Size = New Size(200, 31)
+        devConn.TabIndex = 10
         ' 
         ' Label10
         ' 
@@ -340,14 +354,14 @@ Partial Class frmMain
         Label10.TabIndex = 9
         Label10.Text = "Connection"
         ' 
-        ' ComboBox3
+        ' devOS
         ' 
-        ComboBox3.FormattingEnabled = True
-        ComboBox3.Items.AddRange(New Object() {"MVS 3.8j (Hercules)", "VMS (VAX/Alpha)", "MPE (HP3000)", "RSTS/E (PDP-11)"})
-        ComboBox3.Location = New Point(481, 185)
-        ComboBox3.Name = "ComboBox3"
-        ComboBox3.Size = New Size(200, 31)
-        ComboBox3.TabIndex = 8
+        devOS.FormattingEnabled = True
+        devOS.Items.AddRange(New Object() {"MVS 3.8j (Hercules)", "VMS (VAX/Alpha)", "MPE (HP3000)", "RSTS/E (PDP-11)"})
+        devOS.Location = New Point(481, 185)
+        devOS.Name = "devOS"
+        devOS.Size = New Size(200, 31)
+        devOS.TabIndex = 8
         ' 
         ' Label9
         ' 
@@ -358,14 +372,14 @@ Partial Class frmMain
         Label9.TabIndex = 7
         Label9.Text = "System"
         ' 
-        ' ComboBox2
+        ' devType
         ' 
-        ComboBox2.FormattingEnabled = True
-        ComboBox2.Items.AddRange(New Object() {"Printer", "Reader"})
-        ComboBox2.Location = New Point(481, 148)
-        ComboBox2.Name = "ComboBox2"
-        ComboBox2.Size = New Size(200, 31)
-        ComboBox2.TabIndex = 6
+        devType.FormattingEnabled = True
+        devType.Items.AddRange(New Object() {"Printer", "Reader"})
+        devType.Location = New Point(481, 148)
+        devType.Name = "devType"
+        devType.Size = New Size(200, 31)
+        devType.TabIndex = 6
         ' 
         ' Label8
         ' 
@@ -376,12 +390,12 @@ Partial Class frmMain
         Label8.TabIndex = 5
         Label8.Text = "Type"
         ' 
-        ' TextBox5
+        ' devDescription
         ' 
-        TextBox5.Location = New Point(370, 103)
-        TextBox5.Name = "TextBox5"
-        TextBox5.Size = New Size(426, 30)
-        TextBox5.TabIndex = 4
+        devDescription.Location = New Point(370, 103)
+        devDescription.Name = "devDescription"
+        devDescription.Size = New Size(426, 30)
+        devDescription.TabIndex = 4
         ' 
         ' Label7
         ' 
@@ -392,12 +406,12 @@ Partial Class frmMain
         Label7.TabIndex = 3
         Label7.Text = "Description"
         ' 
-        ' TextBox4
+        ' devName
         ' 
-        TextBox4.Location = New Point(370, 44)
-        TextBox4.Name = "TextBox4"
-        TextBox4.Size = New Size(426, 30)
-        TextBox4.TabIndex = 2
+        devName.Location = New Point(370, 44)
+        devName.Name = "devName"
+        devName.Size = New Size(426, 30)
+        devName.TabIndex = 2
         ' 
         ' Label6
         ' 
@@ -408,14 +422,47 @@ Partial Class frmMain
         Label6.TabIndex = 1
         Label6.Text = "Device name"
         ' 
-        ' ListBox1
+        ' ListOfDevs
         ' 
-        ListBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        ListBox1.FormattingEnabled = True
-        ListBox1.Location = New Point(19, 18)
-        ListBox1.Name = "ListBox1"
-        ListBox1.Size = New Size(321, 326)
-        ListBox1.TabIndex = 0
+        ListOfDevs.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
+        ListOfDevs.FormattingEnabled = True
+        ListOfDevs.Location = New Point(19, 18)
+        ListOfDevs.Name = "ListOfDevs"
+        ListOfDevs.Size = New Size(321, 303)
+        ListOfDevs.TabIndex = 0
+        ' 
+        ' getButton
+        ' 
+        getButton.Enabled = False
+        getButton.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        getButton.Location = New Point(492, 35)
+        getButton.Name = "getButton"
+        getButton.Size = New Size(94, 29)
+        getButton.TabIndex = 5
+        getButton.Text = "Get data"
+        getButton.UseVisualStyleBackColor = True
+        ' 
+        ' putButton
+        ' 
+        putButton.Enabled = False
+        putButton.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        putButton.Location = New Point(592, 35)
+        putButton.Name = "putButton"
+        putButton.Size = New Size(94, 29)
+        putButton.TabIndex = 6
+        putButton.Text = "Put data"
+        putButton.UseVisualStyleBackColor = True
+        ' 
+        ' DataLight
+        ' 
+        DataLight.Font = New Font("Consolas", 13.8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        DataLight.ForeColor = Color.DarkGray
+        DataLight.Location = New Point(704, 41)
+        DataLight.Name = "DataLight"
+        DataLight.Size = New Size(160, 58)
+        DataLight.TabIndex = 16
+        DataLight.Text = "Data Transfer"
+        DataLight.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' frmMain
         ' 
@@ -423,8 +470,10 @@ Partial Class frmMain
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.PaleGoldenrod
         ClientSize = New Size(900, 517)
+        Controls.Add(DataLight)
+        Controls.Add(putButton)
+        Controls.Add(getButton)
         Controls.Add(TabControl1)
-        Controls.Add(cmdConnect)
         Controls.Add(txtHost)
         Controls.Add(Label1)
         Controls.Add(MenuStrip1)
@@ -446,7 +495,6 @@ Partial Class frmMain
 
     Friend WithEvents Label1 As Label
     Friend WithEvents txtHost As TextBox
-    Friend WithEvents cmdConnect As Button
     Friend WithEvents MenuStrip1 As MenuStrip
     Friend WithEvents ServerToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents LoadServerConfigurationToolStripMenuItem As ToolStripMenuItem
@@ -467,20 +515,25 @@ Partial Class frmMain
     Friend WithEvents Label4 As Label
     Friend WithEvents TextBox3 As TextBox
     Friend WithEvents Label3 As Label
-    Friend WithEvents ListBox1 As ListBox
-    Friend WithEvents TextBox5 As TextBox
+    Friend WithEvents ListOfDevs As ListBox
+    Friend WithEvents devDescription As TextBox
     Friend WithEvents Label7 As Label
-    Friend WithEvents TextBox4 As TextBox
+    Friend WithEvents devName As TextBox
     Friend WithEvents Label6 As Label
-    Friend WithEvents ComboBox2 As ComboBox
+    Friend WithEvents devType As ComboBox
     Friend WithEvents Label8 As Label
-    Friend WithEvents ComboBox3 As ComboBox
+    Friend WithEvents devOS As ComboBox
     Friend WithEvents Label9 As Label
-    Friend WithEvents ComboBox4 As ComboBox
+    Friend WithEvents devConn As ComboBox
     Friend WithEvents Label10 As Label
-    Friend WithEvents TextBox6 As TextBox
+    Friend WithEvents devDest As TextBox
     Friend WithEvents Label11 As Label
-    Friend WithEvents CheckBox2 As CheckBox
-    Friend WithEvents CheckBox1 As CheckBox
+    Friend WithEvents devPDF As CheckBox
+    Friend WithEvents devAuto As CheckBox
+    Friend WithEvents getButton As Button
+    Friend WithEvents putButton As Button
+    Friend WithEvents Button3 As Button
+    Friend WithEvents Button1 As Button
+    Friend WithEvents DataLight As Label
 
 End Class

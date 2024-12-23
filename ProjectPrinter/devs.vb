@@ -135,7 +135,7 @@ Public Class devs
                     End If
                 Next
                 If currentDocument.Count > 0 Then
-                    Await ProcessDocument(currentDocument)
+                    ProcessDocument(currentDocument)
                     currentDocument.Clear()
                 End If
             End While
@@ -158,7 +158,7 @@ Public Class devs
         End Try
     End Sub
 
-    Private Async Function ProcessDocument(doc As List(Of String)) As Task
+    Private Sub ProcessDocument(doc As List(Of String))
         If doc.Count > 4 Then
             ' For now we're just going to save it to a file.  Ultimately really process it
             Dim JobID, JobName, UserID As String
@@ -177,11 +177,11 @@ Public Class devs
             'Await oStream.FlushAsync
             'oStream.Close()
             'Log(String.Format("[{2}] {0} lines of output written to {1}", currentDocument.Count, filename, DevName))
-            CreatePDF(JobName, doc, PdfName)
+            CreatePDF(JobName, doc, pdfName)
         Else
             Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
         End If
-    End Function
+    End Sub
 
     Private Function IsTrailerPage(lines As String()) As Boolean
         ' Check if the trailer contains "COMPLETED ON" indicating job completion
