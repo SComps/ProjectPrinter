@@ -10,6 +10,7 @@ Imports System.Runtime.Serialization.Json
 Imports System.Text
 Imports System.Threading
 Imports PdfSharp.Drawing
+Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
 
 Public Class devs
@@ -222,6 +223,7 @@ Public Class devs
         Dim JobNumber As String = ""
         Dim JobName As String = ""
         Dim doc As New PdfSharp.Pdf.PdfDocument
+        GlobalFontSettings.FontResolver = New ChainprinterFontResolver()
         doc.Info.Title = title
         Dim page As PdfPage = doc.AddPage()
         page.Orientation = PdfSharp.PageOrientation.Landscape
@@ -229,7 +231,7 @@ Public Class devs
         Dim gfx As XGraphics = XGraphics.FromPdfPage(page)
         ' Create a font
 
-        Dim font As New XFont("Lucida Console", 8, XFontStyleEx.Regular)
+        Dim font As New XFont("Chainprinter", 8)
         Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
         gfx.DrawImage(bkgrd, 0, 0)
         ' Set initial coordinates for text
