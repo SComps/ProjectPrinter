@@ -36,12 +36,11 @@ Partial Class frmMain
         TabControl1 = New TabControl()
         TabPage1 = New TabPage()
         Label5 = New Label()
-        ComboBox1 = New ComboBox()
         Label4 = New Label()
-        TextBox3 = New TextBox()
+        cmdPort = New TextBox()
         Label3 = New Label()
         Button2 = New Button()
-        TextBox2 = New TextBox()
+        configFile = New TextBox()
         Label2 = New Label()
         TabPage2 = New TabPage()
         Button3 = New Button()
@@ -64,6 +63,7 @@ Partial Class frmMain
         getButton = New Button()
         putButton = New Button()
         DataLight = New Label()
+        logType = New TextBox()
         MenuStrip1.SuspendLayout()
         TabControl1.SuspendLayout()
         TabPage1.SuspendLayout()
@@ -160,13 +160,13 @@ Partial Class frmMain
         ' 
         ' TabPage1
         ' 
+        TabPage1.Controls.Add(logType)
         TabPage1.Controls.Add(Label5)
-        TabPage1.Controls.Add(ComboBox1)
         TabPage1.Controls.Add(Label4)
-        TabPage1.Controls.Add(TextBox3)
+        TabPage1.Controls.Add(cmdPort)
         TabPage1.Controls.Add(Label3)
         TabPage1.Controls.Add(Button2)
-        TabPage1.Controls.Add(TextBox2)
+        TabPage1.Controls.Add(configFile)
         TabPage1.Controls.Add(Label2)
         TabPage1.Location = New Point(4, 32)
         TabPage1.Name = "TabPage1"
@@ -188,16 +188,6 @@ Partial Class frmMain
         Label5.Text = "Changes made on this tab require a server shutdown and restart."
         Label5.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' ComboBox1
-        ' 
-        ComboBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        ComboBox1.FormattingEnabled = True
-        ComboBox1.Items.AddRange(New Object() {"None (silent)", "Default", "File (define)"})
-        ComboBox1.Location = New Point(163, 114)
-        ComboBox1.Name = "ComboBox1"
-        ComboBox1.Size = New Size(236, 31)
-        ComboBox1.TabIndex = 6
-        ' 
         ' Label4
         ' 
         Label4.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
@@ -208,13 +198,13 @@ Partial Class frmMain
         Label4.TabIndex = 5
         Label4.Text = "Log type:"
         ' 
-        ' TextBox3
+        ' cmdPort
         ' 
-        TextBox3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        TextBox3.Location = New Point(163, 66)
-        TextBox3.Name = "TextBox3"
-        TextBox3.Size = New Size(140, 30)
-        TextBox3.TabIndex = 4
+        cmdPort.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        cmdPort.Location = New Point(163, 66)
+        cmdPort.Name = "cmdPort"
+        cmdPort.Size = New Size(140, 30)
+        cmdPort.TabIndex = 4
         ' 
         ' Label3
         ' 
@@ -236,13 +226,13 @@ Partial Class frmMain
         Button2.Text = "Browse"
         Button2.UseVisualStyleBackColor = True
         ' 
-        ' TextBox2
+        ' configFile
         ' 
-        TextBox2.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        TextBox2.Location = New Point(163, 19)
-        TextBox2.Name = "TextBox2"
-        TextBox2.Size = New Size(486, 30)
-        TextBox2.TabIndex = 1
+        configFile.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        configFile.Location = New Point(163, 19)
+        configFile.Name = "configFile"
+        configFile.Size = New Size(486, 30)
+        configFile.TabIndex = 1
         ' 
         ' Label2
         ' 
@@ -273,10 +263,10 @@ Partial Class frmMain
         TabPage2.Controls.Add(devName)
         TabPage2.Controls.Add(Label6)
         TabPage2.Controls.Add(ListOfDevs)
-        TabPage2.Location = New Point(4, 32)
+        TabPage2.Location = New Point(4, 29)
         TabPage2.Name = "TabPage2"
         TabPage2.Padding = New Padding(3)
-        TabPage2.Size = New Size(838, 387)
+        TabPage2.Size = New Size(838, 390)
         TabPage2.TabIndex = 1
         TabPage2.Text = "Devices"
         TabPage2.UseVisualStyleBackColor = True
@@ -464,6 +454,14 @@ Partial Class frmMain
         DataLight.Text = "Data Transfer"
         DataLight.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' logType
+        ' 
+        logType.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        logType.Location = New Point(163, 111)
+        logType.Name = "logType"
+        logType.Size = New Size(486, 30)
+        logType.TabIndex = 8
+        ' 
         ' frmMain
         ' 
         AutoScaleDimensions = New SizeF(9F, 23F)
@@ -507,13 +505,12 @@ Partial Class frmMain
     Friend WithEvents TabControl1 As TabControl
     Friend WithEvents TabPage1 As TabPage
     Friend WithEvents TabPage2 As TabPage
-    Friend WithEvents TextBox2 As TextBox
+    Friend WithEvents configFile As TextBox
     Friend WithEvents Label2 As Label
     Friend WithEvents Button2 As Button
     Friend WithEvents Label5 As Label
-    Friend WithEvents ComboBox1 As ComboBox
     Friend WithEvents Label4 As Label
-    Friend WithEvents TextBox3 As TextBox
+    Friend WithEvents cmdPort As TextBox
     Friend WithEvents Label3 As Label
     Friend WithEvents ListOfDevs As ListBox
     Friend WithEvents devDescription As TextBox
@@ -535,5 +532,6 @@ Partial Class frmMain
     Friend WithEvents Button3 As Button
     Friend WithEvents Button1 As Button
     Friend WithEvents DataLight As Label
+    Friend WithEvents logType As TextBox
 
 End Class

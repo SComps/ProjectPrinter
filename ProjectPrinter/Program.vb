@@ -301,6 +301,7 @@ Module Program
                 Return ShowHelp()
             Case "GUI_SEND"
                 ' Sends configuration data to GUI client
+                Return GUI_SendConfig()
             Case "GUI_SDEV"
                 ' Sends device data for the GUI client.
                 Return GUI_SendDev()
@@ -370,6 +371,12 @@ Module Program
         Return sb.ToString
     End Function
 
-
+    Private Function GUI_SendConfig()
+        Dim outFmt As String = "CFG|{0}|{1}|{2}" & vbCrLf
+        Dim sb As New StringBuilder
+        sb.Append(String.Format(outFmt, configFile, cmdPort, logType))
+        sb.Append("[[EOD]]")
+        Return sb.ToString
+    End Function
 
 End Module

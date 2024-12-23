@@ -20,7 +20,7 @@ Public Class frmMain
     Dim reader As StreamReader
     Dim writer As StreamWriter
 
-    Dim myConfig As New parmStruct
+    Dim myConfig As New List(Of parmStruct)
     Dim myDevs As New List(Of devs)
 
     Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -98,7 +98,19 @@ Public Class frmMain
             End Try
         Loop
 
-        myDevs = GetConfig(remote)
+        myConfig = GetConfig(remote)
+        'Ok now spin them out of the list
+        For Each p As parmStruct In myConfig
+            Select Case p.arg
+                Case "config"
+                    configFile.Text = p.value
+                Case "cmdPort"
+                    cmdPort.Text = p.value
+                Case "logType"
+                    logType.Text = p.value
+            End Select
+        Next
+        myDevs = GetDevices(remote)
         ListOfDevs.Items.Clear()
         For Each d As devs In myDevs
             ListOfDevs.Items.Add(d.DevName)
@@ -107,8 +119,57 @@ Public Class frmMain
         Application.DoEvents()
         Me.Refresh()
     End Sub
+    Private Function GetConfig(remClient As TcpClient) As List(Of parmStruct)
 
-    Private Function GetConfig(remClient As TcpClient) As List(Of devs)
+        Dim netStream As NetworkStream = remClient.GetStream()
+        Dim readStream As New StreamReader(netStream)
+        Dim writeStream As New StreamWriter(netStream)
+        writeStream.AutoFlush = True
+        writeStream.WriteLine("GUI_SEND")
+        writeStream.Flush()
+        ' Wait for a reply
+        Do While Not (netStream.DataAvailable)
+            Application.DoEvents()
+        Loop
+        Dim reply As New List(Of String)
+        Dim thisLine As String = ""
+        Do Until thisLine.Trim = "[[EOD]]"
+            thisLine = readStream.ReadLine
+            If thisLine.Trim = "[[EOD]]" Then
+                ' End of Data 
+                Exit Do
+            Else
+                reply.Add(thisLine)
+            End If
+        Loop
+        ' This should be ONE string.
+        ' CFG|configFile|cmdport|logtype
+        ' args = {"config:ProjectPrinter.cfg", "cmdPort:16000", "logType:default"}
+        Dim remoteArgs As New List(Of parmStruct)
+        If reply.Count > 1 Then
+            'Houston, we have a problem
+            Throw New Exception("Multiple configuration lines not allowed.")
+        Else
+            Dim cLine() As String = reply(0).Split("|")
+            Dim argType As String = ""
+            For x = 1 To 3
+                Dim newParm As New parmStruct
+                Select Case x
+                    Case 1
+                        argType = "config"
+                    Case 2
+                        argType = "cmdPort"
+                    Case 3
+                        argType = "logType"
+                End Select
+                newParm.arg = argType
+                newParm.value = cLine(x)
+                remoteArgs.Add(newParm)
+            Next
+        End If
+        Return remoteArgs
+    End Function
+    Private Function GetDevices(remClient As TcpClient) As List(Of devs)
 
         Dim netStream As NetworkStream = remClient.GetStream()
         Dim readStream As New StreamReader(netStream)
