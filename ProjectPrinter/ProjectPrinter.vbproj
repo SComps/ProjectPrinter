@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2024.12.23.189</AssemblyVersion>
-    <FileVersion>2024.12.23.189</FileVersion>
+    <AssemblyVersion>2024.12.23.190</AssemblyVersion>
+    <FileVersion>2024.12.23.190</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -84,7 +84,7 @@ Module Program
         Dim ParmsProvided As Integer = 0
         If args.Length = 0 Then
             'No arguments were specified, set up the defaults
-            args = {"config:ProjectPrinter.cfg", "cmdPort:16000", "logType:default"}
+            args = {"config:devices.cfg", "cmdPort:16000", "logType:default"}
         End If
 
         For Each p As String In args

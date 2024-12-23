@@ -23,6 +23,12 @@ Public Class frmMain
     Dim myConfig As New List(Of parmStruct)
     Dim myDevs As New List(Of devs)
 
+    Public ConfigRead As Boolean = False
+    Public oldConfig As String = ""
+    Public oldCmdPort As Integer = 0
+    Public oldLogType As String = ""
+    Public IsDirty As Boolean = False
+
     Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         enteredHost = My.Settings.LastHost
         If enteredHost.Trim = "" Then
@@ -33,6 +39,7 @@ Public Class frmMain
         End If
 
         Dim unused As Boolean = CheckHost()
+        Timer1.Enabled = True
 
     End Sub
 
@@ -73,8 +80,17 @@ Public Class frmMain
     End Function
 
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles getButton.Click
+        If putButton.Enabled Then
+            Dim resp As New DialogResult
+            Dim msg As String = "You have unsaved configuration changes." & vbCrLf &
+              "Do you want to abandon these changes?"
+            resp = MsgBox(msg, vbYesNo Or vbCritical, "Data loss warning!")
+            If resp = DialogResult.No Then
+                Exit Sub
+            End If
+        End If
         Dim oldColor As Color = DataLight.ForeColor
-        DataLight.ForeColor = Color.Red
+        DataLight.ForeColor = Color.LimeGreen
         Application.DoEvents()
         Me.Refresh()
         Try
@@ -104,12 +120,16 @@ Public Class frmMain
             Select Case p.arg
                 Case "config"
                     configFile.Text = p.value
+                    oldConfig = p.value
                 Case "cmdPort"
                     cmdPort.Text = p.value
+                    oldCmdPort = p.value
                 Case "logType"
                     logType.Text = p.value
+                    oldLogType = p.value
             End Select
         Next
+        ConfigRead = True
         myDevs = GetDevices(remote)
         ListOfDevs.Items.Clear()
         For Each d As devs In myDevs
@@ -118,6 +138,8 @@ Public Class frmMain
         DataLight.ForeColor = oldColor
         Application.DoEvents()
         Me.Refresh()
+        IsDirty = False
+        putButton.Enabled = False
     End Sub
     Private Function GetConfig(remClient As TcpClient) As List(Of parmStruct)
 
@@ -223,6 +245,27 @@ Public Class frmMain
         devDest.Text = editDev.DevDest
         devAuto.Checked = editDev.Auto
         devPDF.Checked = editDev.PDF
+    End Sub
+
+    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+        If (Not ConfigRead) Or (putButton.Enabled) Then
+            Timer1.Enabled = True
+            Return
+        End If
+        Timer1.Enabled = False
+        IsDirty = False
+        If oldConfig <> configFile.Text.Trim Then
+            IsDirty = True
+        End If
+        If oldCmdPort <> cmdPort.Text.Trim Then
+            IsDirty = True
+        End If
+        If oldLogType <> logType.Text.Trim Then
+            IsDirty = True
+        End If
+        putButton.Enabled = IsDirty
+        Timer1.Enabled = True
+
     End Sub
 End Class
 
