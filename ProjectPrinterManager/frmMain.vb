@@ -135,6 +135,7 @@ Public Class frmMain
         For Each d As devs In myDevs
             ListOfDevs.Items.Add(d.DevName)
         Next
+        ListOfDevs.SelectedIndex = 0
         DataLight.ForeColor = oldColor
         Application.DoEvents()
         Me.Refresh()
