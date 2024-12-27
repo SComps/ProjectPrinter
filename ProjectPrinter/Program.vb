@@ -7,9 +7,7 @@ Imports System.Runtime
 Imports System.Text
 Imports System.Text.Json
 Imports System.Xml.Serialization
-Imports PdfSharp
-Imports PdfSharp.Drawing
-Imports PdfSharp.Pdf
+
 Public Class parmStruct
     Public arg As String
     Public value As String
@@ -31,7 +29,7 @@ Public Enum OSType
     OS_MVS38J
     OS_VMS
     OS_MPE
-    OS_OTHER
+    OS_RSTS
 End Enum
 Module Program
 

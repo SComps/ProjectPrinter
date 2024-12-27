@@ -207,7 +207,7 @@ Partial Class frmMain
         ' 
         Button4.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Button4.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Button4.Location = New Point(119, 271)
+        Button4.Location = New Point(119, 277)
         Button4.Name = "Button4"
         Button4.Size = New Size(94, 32)
         Button4.TabIndex = 17
@@ -218,7 +218,7 @@ Partial Class frmMain
         ' 
         Button2.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Button2.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Button2.Location = New Point(19, 271)
+        Button2.Location = New Point(19, 277)
         Button2.Name = "Button2"
         Button2.Size = New Size(94, 32)
         Button2.TabIndex = 16
@@ -228,7 +228,7 @@ Partial Class frmMain
         ' Button3
         ' 
         Button3.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        Button3.Location = New Point(119, 310)
+        Button3.Location = New Point(119, 316)
         Button3.Name = "Button3"
         Button3.Size = New Size(94, 40)
         Button3.TabIndex = 15
@@ -238,7 +238,7 @@ Partial Class frmMain
         ' Button1
         ' 
         Button1.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        Button1.Location = New Point(19, 310)
+        Button1.Location = New Point(19, 316)
         Button1.Name = "Button1"
         Button1.Size = New Size(94, 40)
         Button1.TabIndex = 14

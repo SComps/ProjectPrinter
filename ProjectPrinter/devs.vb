@@ -78,7 +78,7 @@ Public Class devs
 
     Private Sub TaskSleep(seconds As Integer)
         Dim delF As String = "[{0}] Data received, waiting {1} second for line to resume or settle."
-        Log(String.Format(delF, DevName, seconds))
+        'Log(String.Format(delF, DevName, seconds))
         Dim MyTime As DateTime = Now()
         Do Until Now > MyTime.AddSeconds(seconds)
             'Don't do anything
@@ -207,7 +207,8 @@ Public Class devs
         Next
         If Not GotInfo Then
             jobName = "UNKNOWN"
-            jobId = Now.ToShortTimeString
+            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = jobId.Replace("/", "-")
             user = DevName
         End If
         Return (jobName, jobId, user)
@@ -293,7 +294,7 @@ Public Class devs
             End If
 
             ' Create a new page if current page is full (adjust according to page layout)
-            If currentLine > 0 AndAlso currentLine Mod 66 = 0 Then ' Max lines per page
+            If currentLine > 0 AndAlso currentLine Mod 65 = 0 Then ' Max lines per page
                 InitializeNewPage()
             End If
 
@@ -310,7 +311,7 @@ Public Class devs
 
         ' Save the document and return the output file
         Dim outputFile As String = filename
-        Log($"Wrote {doc.PageCount} pages for {title}{vbCrLf}")
+        Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.{vbCrLf}")
         doc.Save(outputFile)
         doc.Close()
 
