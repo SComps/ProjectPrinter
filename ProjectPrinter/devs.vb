@@ -31,6 +31,12 @@ Public Class devs
     Private clientWriter As StreamWriter 'Should never be needed but what the hay.
     Private _cancellationTokenSource As CancellationTokenSource
     Private currentDocument As New List(Of String)
+    Private IsConnected As Boolean = False
+    Public ReadOnly Property Connected As Boolean
+        Get
+            Return IsConnected
+        End Get
+    End Property
 
     Private Sub SplitDestination(dest As String)
         Dim thisHost As String
@@ -53,26 +59,30 @@ Public Class devs
 
     Public Async Sub Connect()
         SplitDestination(DevDest)
-        Await StartAsync()
+        Await StartAsync()  ' Connects to the server and starts receiving data
     End Sub
-    ' Connects to the server and starts receiving data
     Public Async Function StartAsync() As Task
         client = New TcpClient()
         _cancellationTokenSource = New CancellationTokenSource()
 
         Try
-            Program.Log("Connecting to server...")
+            Program.Log("Attempting to connect...")
             Await client.ConnectAsync(remoteHost, remotePort)
+            Program.Log("Connection successful.")
             clientStream = client.GetStream()
-            Program.Log("Connected to server.")
-
+            IsConnected = True
             ' Start receiving data
             Await ReceiveDataAsync(_cancellationTokenSource.Token)
         Catch ex As Exception
-            Program.Log($"Error: {ex.Message}")
-            Throw
+            Program.Log($"[{DevName}] {ex.GetType().Name} - {ex.Message}")
+            IsConnected = False
         Finally
-            Disconnect()
+            Try
+                Disconnect()
+            Catch disconnectEx As Exception
+                Program.Log($"Error during disconnection: {disconnectEx.Message}")
+            End Try
+            IsConnected = False
         End Try
     End Function
 

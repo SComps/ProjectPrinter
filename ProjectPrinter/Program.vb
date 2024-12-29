@@ -46,7 +46,10 @@ Module Program
 
     Public Running As Boolean = True
 
+    Public WithEvents statTimer As New System.Timers.Timer
+
     Public Function Main(args As String()) As Integer
+        statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
             'This should absolutely never happen, but hey.
@@ -68,12 +71,23 @@ Module Program
             Dim listenerTask = StartTcpListenerAsync()
         End If
         LoadDevices()
+        statTimer.Enabled = True
         While Running
             ' Just sit hanging around thanks.
         End While
         ShutDown()
         Return 0
     End Function
+
+    Sub CheckTimer(source As Object, args As EventArgs) Handles statTimer.Elapsed
+        For Each d As devs In DevList
+            If Not d.Connected Then
+                Program.Log($"[{d.DevName}] Remote not connected.  Retrying...")
+                d.Connect()
+            End If
+        Next
+        statTimer.Enabled = True
+    End Sub
 
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
