@@ -32,6 +32,7 @@ Public Class devs
     Private _cancellationTokenSource As CancellationTokenSource
     Private currentDocument As New List(Of String)
     Private IsConnected As Boolean = False
+    Private Receiving = False
     Public ReadOnly Property Connected As Boolean
         Get
             Return IsConnected
@@ -103,6 +104,10 @@ Public Class devs
         Try
             While Not cancellationToken.IsCancellationRequested
                 While clientStream.DataAvailable = True
+                    If Not Receiving Then
+                        Receiving = True
+                        Program.Log($"[{DevName}] receiving data from remote host.")
+                    End If
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
                     'Log(recd & " Bytes Received.")
                     Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
@@ -171,10 +176,24 @@ Public Class devs
     End Sub
 
     Private Sub ProcessDocument(doc As List(Of String))
+        Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         If doc.Count > 4 Then
             ' For now we're just going to save it to a file.  Ultimately really process it
+            Receiving = False
+            Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
             Dim JobID, JobName, UserID As String
-            Dim vals = VMS_ExtractJobInformation(doc)
+            Select Case OS
+                Case 1
+                    Program.Log($"[{DevName}] OS type is VMS")
+                    vals = VMS_ExtractJobInformation(doc)
+                Case 3
+                    Program.Log($"[{DevName}] OS type is RSTS/E")
+                    vals = RSTS_ExtractJobInformation(doc)
+                Case Else
+                    Program.Log($"[{DevName}] OS type is not known.")
+                    vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
+            End Select
+
             JobID = vals.JobId
             JobName = vals.JobName
             UserID = vals.User
@@ -185,6 +204,7 @@ Public Class devs
             CreatePDF(JobName, doc, pdfName)
         Else
             Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
+            Receiving = False
         End If
     End Sub
 
@@ -193,12 +213,49 @@ Public Class devs
         Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
     End Function
 
+    Private Function RSTS_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving RSTS/E job information.")
+        For Each line As String In lines
+            line = line.ToUpper
+            ' First see if the word "ENTRY" appears
+            If line.Contains("ENTRY") Then
+                Program.Log("Found ENTRY")
+                'Ok, ENTRY is here, is it in the 4th position?
+                Dim parts As String() = line.Split(" ")
+                If parts(4) = "ENTRY" Then
+                    'Yessir it is! We may have a winner.
+                    'or at least a very coincidental screw up where
+                    'the word ENTRY appears in exactly the right spot.
+                    'which face it, is absolutely going to happen sometime 
+                    'but I'm not magic, so...
+                    Dim jobParts As String() = parts(5).Split(":")
+                    ' after entry is something like SYS$PRINT:[1,3]START.COM
+                    ' so separate those.
+                    Dim jobQueue As String = jobParts(0)
+                    Dim jobData As String = jobParts(1)
+                    'Now lets get the account number out for the user ID [proj,prog]
+                    Dim EOU As Integer = jobData.IndexOf("]") + 1
+                    ' The userID is going to be the left EOU characters
+                    user = Left(jobData, EOU)
+                    ' The job data is from EOU+1 to the end of the string
+                    jobName = Right(jobData, (Len(jobData) - (EOU)))
+                    ' Since RSTS doesn't give us the Job number, we'll put the queue name here
+                    jobId = jobQueue
+                End If
+            End If
+        Next
+        Return (jobName, jobId, user)
+    End Function
+
     Private Function VMS_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
         Dim GotInfo As Boolean = False
         Dim jobName As String = "UnknownJob"
         Dim jobId As String = "0000"
         Dim user As String = "UnknownUser"
-        Log("Processing " & lines.Count & " lines for job information.")
+        Log($"[{DevName}] resolving VMS job information.")
         For Each line In lines
             line = line.ToUpper
             ' Toward the end of the Trailer page all of our information is available
@@ -321,7 +378,7 @@ Public Class devs
 
         ' Save the document and return the output file
         Dim outputFile As String = filename
-        Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.{vbCrLf}")
+        Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.")
         doc.Save(outputFile)
         doc.Close()
 
