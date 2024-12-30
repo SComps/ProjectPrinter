@@ -8,6 +8,8 @@ Imports System.IO
 Imports System.Xml.Serialization
 Imports System.Text.Json.Serialization
 Imports System.Data.SqlTypes
+Imports System.Net
+Imports Windows.Foundation.Metadata
 
 Public Class frmMain
 
@@ -141,9 +143,31 @@ Public Class frmMain
         Me.Refresh()
         IsDirty = False
         putButton.Enabled = False
+        remote.Close()
     End Sub
-    Private Function GetConfig(remClient As TcpClient) As List(Of parmStruct)
+    Private Sub ConnectHost()
+        Try
+            remote = New TcpClient(hostname, hostPort)
+        Catch ex As Exception
+            Dim resp As DialogResult
+            Dim txtfmt As String = "Unable to connect to host {0} on " & vbCrLf &
+                "port {1}.  The complete error is: " & vbCrLf & vbCrLf &
+                "{2}."
+            resp = MsgBox(String.Format(txtfmt, hostname, hostPort, ex.Message), vbOKOnly, "Connection Error")
+            Return
+        End Try
+    End Sub
 
+
+    Private Sub UpdateDevs()
+        ListOfDevs.Items.Clear()
+        For Each d As devs In myDevs
+            ListOfDevs.Items.Add(d.DevName)
+        Next
+        ListOfDevs.SelectedIndex = 0
+    End Sub
+
+    Private Function GetConfig(remClient As TcpClient) As List(Of parmStruct)
         Dim netStream As NetworkStream = remClient.GetStream()
         Dim readStream As New StreamReader(netStream)
         Dim writeStream As New StreamWriter(netStream)
@@ -268,6 +292,57 @@ Public Class frmMain
         Timer1.Enabled = True
 
     End Sub
+
+    Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        ' Add a new device.  Make it blank, and let the user change things.
+        Dim newDev As New devs
+        newDev.DevName = "NEW_DEVICE"
+        newDev.DevDescription = "Unconfigured Device"
+        newDev.OS = 0
+        newDev.ConnType = 0
+        newDev.DevType = 0
+        newDev.DevDest = ""
+        newDev.Auto = False
+        newDev.PDF = True
+        myDevs.Add(newDev)
+        UpdateDevs()
+    End Sub
+
+    Private Sub Button1_Click_1(sender As Object, e As EventArgs) Handles Button1.Click
+        ' Update the selected device with the current data
+        Dim selectedIndex As Integer = ListOfDevs.SelectedIndex
+        Dim editDev As devs = myDevs(selectedIndex)
+        editDev.DevName = devName.Text
+        editDev.DevDescription = devDescription.Text
+        editDev.DevType = devType.SelectedIndex
+        editDev.ConnType = devConn.SelectedIndex
+        editDev.OS = devOS.SelectedIndex
+        editDev.Auto = devAuto.Checked
+        editDev.PDF = devPDF.Checked
+        myDevs(selectedIndex) = editDev
+    End Sub
+
+    Private Sub putButton_Click(sender As Object, e As EventArgs) Handles putButton.Click
+        ConnectHost()
+        ClearStage()
+
+    End Sub
+
+    Private Sub SendDevice(myDevice As devs)
+
+    End Sub
+
+    Private Sub ClearStage()
+        Dim netStream As NetworkStream = remote.GetStream()
+        Dim readStream As New StreamReader(netStream)
+        Dim writeStream As New StreamWriter(netStream)
+        writeStream.AutoFlush = True
+        writeStream.WriteLine("CLR_STAGE")
+        writeStream.Flush()
+        Dim thisLine As String = readStream.ReadLine()
+        MsgBox(thisLine)
+    End Sub
+
 End Class
 
 Public Class parmStruct

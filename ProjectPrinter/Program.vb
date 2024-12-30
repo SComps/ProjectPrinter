@@ -38,6 +38,7 @@ Module Program
     Const parmInvalid As String = "Invalid parameter {0}:{1}"
 
     Public DevList As New List(Of devs)
+    Public StageList As New List(Of devs)
     Public GlobalParms As New List(Of parmStruct)
     Public configFile As String = ""
     Public cmdPort As Integer = 0
@@ -309,6 +310,16 @@ Module Program
             Case "LOAD_DEVS"
                 LoadDevices()
                 Return "Device list loaded from stored configuration."
+            Case "CLR_STAGE"
+                StageList.Clear()
+                Program.Log("Cleared device staging area.")
+                Return "Staging list cleared."
+            Case "STAGE_DEV"
+                ' Adds a new device to the staging area
+                Return AddADevice(input)
+            Case "COMMIT_STAGE"
+                ' Replaces all current devices with the staging devices
+                ' waits until everything is idle, then restarts.
             Case "HELP"
                 Return ShowHelp()
             Case "GUI_SEND"
@@ -331,6 +342,24 @@ Module Program
         Return String.Format(NoCommand, input)
     End Function
 
+    Private Function AddADevice(inputline As String) As String
+        Dim newDevice As New devs
+        Dim inputParms As String() = inputline.Split("|")
+        If inputParms.Count <> 8 Then
+            Return $"Invalid device data. {inputParms.Count} elements received."
+        End If
+        newDevice.DevName = inputParms(1)
+        newDevice.DevDescription = inputParms(2)
+        newDevice.DevType = inputParms(3)
+        newDevice.ConnType = inputParms(4)
+        newDevice.DevDest = inputParms(5)
+        newDevice.OS = inputParms(6)
+        newDevice.Auto = inputParms(7)
+        newDevice.PDF = inputParms(8)
+        StageList.Add(newDevice)
+        Program.Log($"[STAGING] Added new device {newDevice.DevName} to the staging list.")
+        Return "Staging device accepted."
+    End Function
     Function ShowHelp() As String
         Dim hlp As New StringBuilder
         hlp.AppendLine("ProjectPrinter - 2024,2025 provided as true open source.  As in here's")

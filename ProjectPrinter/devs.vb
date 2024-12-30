@@ -88,8 +88,6 @@ Public Class devs
     End Function
 
     Private Sub TaskSleep(seconds As Integer)
-        Dim delF As String = "[{0}] Data received, waiting {1} second for line to resume or settle."
-        'Log(String.Format(delF, DevName, seconds))
         Dim MyTime As DateTime = Now()
         Do Until Now > MyTime.AddSeconds(seconds)
             'Don't do anything
