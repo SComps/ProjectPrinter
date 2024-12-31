@@ -176,9 +176,25 @@ Public Class devs
     Private Sub ProcessDocument(doc As List(Of String))
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         If doc.Count > 4 Then
-            ' For now we're just going to save it to a file.  Ultimately really process it
+
             Receiving = False
             Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
+            ' Lets try to eat any blank lines or form feeds before any real data
+            Dim idx As Integer = 0
+            Do
+                ' loop through until we hit real data
+                If doc(idx).Trim = "" Then
+                    doc(idx) = ""
+                    Program.Log($"[{DevName}] Removing leading blank line from document.")
+                End If
+                If doc(idx).Trim = vbFormFeed Then
+                    doc(idx) = ""
+                    Program.Log($"[{DevName}] Removing unneeded FF from document.")
+                End If
+
+                If doc(idx).Trim <> "" Then Exit Do
+                idx = idx + 1
+            Loop
             Dim JobID, JobName, UserID As String
             Select Case OS
                 Case 1
@@ -199,7 +215,14 @@ Public Class devs
             Dim fnPdf As String = "PRT-{0}-{1}-{2}.pdf"
             Dim filename As String = String.Format(fnFmt, UserID, JobID, JobName)
             Dim pdfName As String = String.Format(fnPdf, UserID, JobID, JobName)
+            Dim writer As New StreamWriter(filename)
+            For Each l As String In doc
+                writer.Write(l)
+            Next
+            writer.Flush()
+            writer.Close()
             CreatePDF(JobName, doc, pdfName)
+
         Else
             Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
             Receiving = False
@@ -280,7 +303,9 @@ Public Class devs
     End Function
 
     Public Function CreatePDF(title As String, outList As List(Of String), filename As String) As String
-        Dim firstline As Double = 55
+        Dim firstline As Double = 0
+        Dim linesPerPage As Integer = 66
+        Dim StartLine = 0
         ' Initialize the PDF document
         Dim doc As New PdfSharp.Pdf.PdfDocument
         GlobalFontSettings.FontResolver = New ChainprinterFontResolver()
@@ -288,6 +313,18 @@ Public Class devs
 
         ' Initialize background image (greenbar.jpg) to cover entire page
         Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
+
+        If OS = 3 Then
+            firstline = 27
+            linesPerPage = 66
+            StartLine = 3
+        End If
+
+        If OS = 1 Then
+            firstline = 27
+            linesPerPage = 66
+            StartLine = 3
+        End If
 
         ' Define margins (1/2 inch for left and right margins)
         Dim leftMargin As Double = 30 ' 1/2 inch margin
@@ -298,7 +335,7 @@ Public Class devs
         Dim page As PdfPage = Nothing ' Page will be initialized later
         Dim gfx As XGraphics = Nothing ' gfx will be initialized later
         Dim y As Double = firstline ' Starting Y position for text
-        Dim currentLine As Integer = 0
+        Dim currentLine As Integer = StartLine
 
         ' Declare lineHeight for later use
         Dim lineHeight As Double
@@ -335,7 +372,7 @@ Public Class devs
 
                                     ' Reset text starting position
                                     y = firstline
-                                    currentLine = 0
+                                    currentLine = StartLine
                                 End Sub
 
         ' Initialize the first page
@@ -343,11 +380,13 @@ Public Class devs
 
         ' Regex to remove any non-printable characters, and explicitly handle LF (line feed)
         Dim regex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C\x0D\u00A0]", RegexOptions.Compiled)
-
+        If outList(0).Trim = "" Then
+            outList.RemoveAt(0)       ' In case it starts out with a LF/CR or otherwise empty line.
+        End If
         ' Process each line from the output list
         For Each line As String In outList
-            ' Remove Line Feed (LF) characters explicitly
-            line = line.Replace(vbLf, String.Empty)
+            ' Remove Line Feed (LF) characters explicitly replace with vbCR
+            line = line.Replace(vbLf, vbCr)
             line = regex.Replace(line, "") ' Remove non-printable characters
 
             ' Replace empty lines with a space
@@ -359,7 +398,7 @@ Public Class devs
             End If
 
             ' Create a new page if current page is full (adjust according to page layout)
-            If currentLine > 0 AndAlso currentLine Mod 65 = 0 Then ' Max lines per page
+            If currentLine = (linesPerPage - 1) Then ' Max lines per page
                 InitializeNewPage()
             End If
 
