@@ -6,8 +6,8 @@
     <StartupObject>ProjectPrinterManager.My.MyApplication</StartupObject>
     <UseWindowsForms>true</UseWindowsForms>
     <MyType>WindowsForms</MyType>
-    <AssemblyVersion>2024.12.31.159</AssemblyVersion>
-    <FileVersion>2024.12.31.159</FileVersion>
+    <AssemblyVersion>2025.1.4.160</AssemblyVersion>
+    <FileVersion>2025.1.4.160</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

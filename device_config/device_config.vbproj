@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>device_config</RootNamespace>
+    <TargetFramework>net9.0</TargetFramework>
+    <AssemblyVersion>2025.1.4.7</AssemblyVersion>
+    <FileVersion>2025.1.4.7</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="devices.cfg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
