@@ -87,14 +87,64 @@ Public Class devs
         End Try
     End Function
 
-    Private Sub TaskSleep(seconds As Integer)
-        Dim MyTime As DateTime = Now()
-        Do Until Now > MyTime.AddSeconds(seconds)
-            'Don't do anything
-        Loop
-    End Sub
+    Private Async Function TaskSleepAsync(seconds As Integer) As Task
+        Await Task.Delay(seconds * 1000)
+    End Function
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
+        Dim buffer(4096) As Byte ' Larger buffer for fewer ReadAsync calls
+        Dim dataBuilder As New StringBuilder()
+
+        Try
+            While Not cancellationToken.IsCancellationRequested
+                If clientStream.DataAvailable Then
+                    Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                    If recd > 0 Then
+                        Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
+                        dataBuilder.Append(receivedPart)
+                    End If
+                Else
+                    Await Task.Delay(10) ' Small delay to reduce CPU churn
+                End If
+
+                ' Process complete lines
+                Dim fullData As String = dataBuilder.ToString()
+                Dim lines As New List(Of String)()
+                Dim currentLine As New StringBuilder()
+
+                For Each c As Char In fullData
+                    If c = vbCr Then
+                        lines.Add(currentLine.ToString())
+                        currentLine.Clear()
+                    ElseIf c = Chr(12) Then ' FF character
+                        lines.Add(currentLine.ToString())
+                        lines.Add(c.ToString())
+                        currentLine.Clear()
+                    Else
+                        currentLine.Append(c)
+                    End If
+                Next
+
+                dataBuilder.Clear()
+                dataBuilder.Append(currentLine.ToString())
+
+                If lines.Any() Then
+                    currentDocument.AddRange(lines)
+                    ProcessDocument(currentDocument)
+                    currentDocument.Clear()
+                End If
+            End While
+        Catch ex As OperationCanceledException
+            Log("Receiving canceled.")
+        Catch ex As Exception
+            Log($"Error receiving data: {ex.Message}")
+        End Try
+    End Function
+
+
+    ' THIS IS AN OLD VERSION OF RECEIVEDATAASYNC.  IT IS HERE FOR REFERENCE ONLY AND WILL BE REMOVED
+    ' DO NOT USE THIS FUNCTION.
+    Private Async Function OldReceiveDataAsync(cancellationToken As CancellationToken) As Task
         Dim lastLineReceived As DateTime = Now()
         Dim buffer(140) As Byte
         Dim dataBuilder As New StringBuilder()
@@ -114,7 +164,7 @@ Public Class devs
                     If clientStream.DataAvailable Then
                         'No need to wait
                     Else
-                        TaskSleep(1)
+                        Await TaskSleepAsync(1)
                     End If
                 End While
 
