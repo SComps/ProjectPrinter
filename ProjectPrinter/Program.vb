@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Threading
 Imports System.Net
 Imports System.Net.Mime.MediaTypeNames
 Imports System.Net.Sockets
@@ -74,7 +75,7 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         While Running
-
+            Thread.Sleep(300)
         End While
         ShutDown()
         Return 0
