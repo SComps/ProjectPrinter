@@ -74,7 +74,7 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         While Running
-            ' Just sit hanging around thanks.
+
         End While
         ShutDown()
         Return 0
