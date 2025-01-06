@@ -277,8 +277,8 @@ Public Class devs
         End If
     End Sub
 
-    Private Function IsTrailerPage(lines As String()) As Boolean
-        ' Check if the trailer contains "COMPLETED ON" indicating job completion
+    Private Function IsTrailerPage(lines As String()) As Boolean    'VMS trailer page
+        ' Check if the trailer contains "COMPLETED ON" indicating job completion (VMS)
         Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
     End Function
 
@@ -493,7 +493,7 @@ Public Class devs
                 ' Finally remove the FF character from the printable line.
                 line = line.Replace(vbFormFeed, String.Empty)
             Catch ex As Exception
-                Stop
+                'Stop       ' Debugging stop only.
             End Try
             ' Draw the line of text
             gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
