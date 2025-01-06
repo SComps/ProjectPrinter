@@ -67,9 +67,9 @@ Public Class devs
         _cancellationTokenSource = New CancellationTokenSource()
 
         Try
-            Program.Log("Attempting to connect...")
+            Program.Log($"[{DevName}] Attempting to connect...")
             Await client.ConnectAsync(remoteHost, remotePort)
-            Program.Log("Connection successful.")
+            Program.Log($"[{DevName}] Connection successful.")
             clientStream = client.GetStream()
             IsConnected = True
             ' Start receiving data
@@ -81,7 +81,7 @@ Public Class devs
             Try
                 Disconnect()
             Catch disconnectEx As Exception
-                Program.Log($"Error during disconnection: {disconnectEx.Message}")
+                Program.Log($"[{DevName}] Error during disconnection: {disconnectEx.Message}")
             End Try
             IsConnected = False
         End Try
@@ -132,12 +132,19 @@ Public Class devs
                     End If
                 Else
                     ' If data is available, read it
+                    If Not Receiving Then
+                        Receiving = True
+                        If OS <> 4 Then
+                            Program.Log($"[{DevName}] receiving data from remote host.")
+                        Else
+                            Program.Log($"[{DevName}] receiving data from low speed device for RSTS/E")
+                        End If
+                    End If
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
                     If recd > 0 Then
                         ' Append received data to the data builder
                         Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
                         dataBuilder.Append(receivedPart)
-
                         ' Update last received time to now
                         lastReceivedTime = DateTime.Now
                     End If
@@ -158,8 +165,17 @@ Public Class devs
 
         ' Process each character in the full data
         For Each c As Char In documentData
-            If c = vbCr Then
-                lines.Add(currentLine.ToString())
+            If OS = 3 Then
+                If c = vbCr Then c = ""
+                If c = vbLf Then c = vbCr
+            End If
+            If (c = vbCr) Then
+                currentLine.Append(c.ToString)
+                If currentLine.ToString.Trim.Length > 0 Then
+                    lines.Add(currentLine.ToString())
+                Else
+                    lines.Add(" " & vbCr)
+                End If
                 currentLine.Clear()
             ElseIf c = Chr(12) Then ' FF character (form feed)
                 lines.Add(currentLine.ToString())
@@ -179,83 +195,11 @@ Public Class devs
         If lines.Any() Then
             currentDocument.AddRange(lines)
             ProcessDocument(currentDocument)
+            Program.Log($"[{DevName}] Waiting for new document.")
             currentDocument.Clear() ' Clear for the next document
+            Receiving = False
         End If
     End Sub
-
-
-
-
-    ' THIS IS AN OLD VERSION OF RECEIVEDATAASYNC.  IT IS HERE FOR REFERENCE ONLY AND WILL BE REMOVED
-    ' DO NOT USE THIS FUNCTION.
-
-    ' If you use this function, CPU usage will spike dramatically.
-    Private Async Function OldReceiveDataAsync(cancellationToken As CancellationToken) As Task
-        Dim lastLineReceived As DateTime = Now()
-        Dim buffer(140) As Byte
-        Dim dataBuilder As New StringBuilder()
-
-        Try
-            While Not cancellationToken.IsCancellationRequested
-                While clientStream.DataAvailable = True
-                    If Not Receiving Then
-                        Receiving = True
-                        Program.Log($"[{DevName}] receiving data from remote host.")
-                    End If
-                    Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                    'Log(recd & " Bytes Received.")
-                    Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
-                    dataBuilder.Append(receivedPart)
-                    ' Wait 3 seconds to see if more data arrives.
-                    If clientStream.DataAvailable Then
-                        'No need to wait
-                    Else
-                        Await TaskSleepAsync(1)
-                    End If
-                End While
-
-                ' Process complete lines (terminated by vbCr or FF)
-                Dim fullData As String = dataBuilder.ToString()
-                Dim lines As New List(Of String)()
-                Dim currentLine As New StringBuilder()
-
-                For Each c As Char In fullData
-                    If c = vbCr Then
-                        ' End the current line and start a new one
-                        lines.Add(currentLine.ToString())
-                        currentLine.Clear()
-                    ElseIf c = Chr(12) Then ' Form Feed (FF)
-                        ' End the current line, add FF on it'd own line and start a new one
-                        lines.Add(currentLine.ToString() & vbCrLf)
-                        currentLine.Clear()
-                        currentLine.Append(c & vbCrLf)
-                    Else
-                        ' Add character to the current line
-                        currentLine.Append(c)
-                    End If
-                Next
-
-                ' Retain any partial line (not terminated by vbCr or FF)
-                dataBuilder.Clear()
-                dataBuilder.Append(currentLine.ToString())
-
-                ' Output complete lines
-                For Each line As String In lines
-                    If Not String.IsNullOrEmpty(line) Then
-                        currentDocument.Add(line)
-                    End If
-                Next
-                If currentDocument.Count > 0 Then
-                    ProcessDocument(currentDocument)
-                    currentDocument.Clear()
-                End If
-            End While
-        Catch ex As OperationCanceledException
-            Log("Receiving canceled.")
-        Catch ex As Exception
-            Log($"Error receiving data: {ex.Message}")
-        End Try
-    End Function
 
     ' Disconnects the client
     Public Sub Disconnect()
@@ -271,7 +215,7 @@ Public Class devs
 
     Private Sub ProcessDocument(doc As List(Of String))
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
-        If doc.Count > 5 Then
+        If doc.Count > 10 Then
 
             Receiving = False
             Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
@@ -297,6 +241,9 @@ Public Class devs
                     Program.Log($"[{DevName}] OS type is VMS")
                     vals = VMS_ExtractJobInformation(doc)
                 Case 3
+                    Program.Log($"[{DevName}] OS type is MPE")
+                    vals = MPE_ExtractJobInformation(doc)
+                Case 4
                     Program.Log($"[{DevName}] OS type is RSTS/E")
                     vals = RSTS_ExtractJobInformation(doc)
                 Case Else
@@ -311,16 +258,21 @@ Public Class devs
             Dim fnPdf As String = "PRT-{0}-{1}-{2}.pdf"
             Dim filename As String = String.Format(fnFmt, UserID, JobID, JobName)
             Dim pdfName As String = String.Format(fnPdf, UserID, JobID, JobName)
+
             Dim writer As New StreamWriter(filename)
             For Each l As String In doc
+                l = l.Replace(vbCr, "<CR>" & vbCr)
+                l = l.Replace(vbLf, "<LF>")
+                l = l.Replace(vbFormFeed, "<FF>")
                 writer.Write(l)
-            Next
-            writer.Flush()
-            writer.Close()
+                Next
+                writer.Flush()
+                writer.Close()
+
             CreatePDF(JobName, doc, pdfName)
 
-        Else
-            Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
+            Else
+                Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
             Receiving = False
         End If
     End Sub
@@ -339,7 +291,6 @@ Public Class devs
             line = line.ToUpper
             ' First see if the word "ENTRY" appears
             If line.Contains("ENTRY") Then
-                Program.Log("Found ENTRY")
                 'Ok, ENTRY is here, is it in the 4th position?
                 Dim parts As String() = line.Split(" ")
                 If parts(4) = "ENTRY" Then
@@ -398,7 +349,42 @@ Public Class devs
         Return (jobName, jobId, user)
     End Function
 
+    Private Function MPE_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Dim GotInfo As Boolean = False
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving MPE job information.")
+        ' As near as I can tell, the first (data) line of an MPE header page has all the
+        ' job information we'll need.  If I'm wrong, somebody correct me.
+
+        For Each line In lines
+            line = line.ToUpper
+            If line.Trim.Length > 0 Then
+                ' If we hit a line that has data, the first one should be our payload
+                Dim parts As String() = line.Split(" ")
+                jobName = parts(0).Trim.Replace("#", "")
+                jobName = jobName.Replace(vbNullChar, "")
+                jobName = jobName.Replace(";", "")
+                jobId = parts(1).Trim.Replace("#", "")
+                jobId = jobId.Replace(";", "")
+                user = parts(5).Replace(";", "")
+                jobId = jobId.Replace("(", "")
+                jobId = jobId.Replace(")", "")
+                GotInfo = True
+                Exit For
+            End If
+        Next
+        If Not GotInfo Then
+            jobName = "UNKNOWN"
+            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = jobId.Replace("/", "-")
+            user = DevName
+        End If
+        Return (jobName, jobId, user)
+    End Function
     Public Function CreatePDF(title As String, outList As List(Of String), filename As String) As String
+        Program.Log($"{DevName} beginning PDF generation.")
         Dim firstline As Double = 0
         Dim linesPerPage As Integer = 66
         Dim StartLine = 0
@@ -410,7 +396,7 @@ Public Class devs
         ' Initialize background image (greenbar.jpg) to cover entire page
         Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
 
-        If OS = 3 Then
+        If OS >= 3 Then         'MPE and RSTS/E may need special handling.  For now, same as VMS
             firstline = 27
             linesPerPage = 66
             StartLine = 3
@@ -476,31 +462,39 @@ Public Class devs
 
         ' Regex to remove any non-printable characters, and explicitly handle LF (line feed)
         Dim regex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C\x0D\u00A0]", RegexOptions.Compiled)
+        Dim mperegex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C]", RegexOptions.Compiled)
         If outList(0).Trim = "" Then
             outList.RemoveAt(0)       ' In case it starts out with a LF/CR or otherwise empty line.
         End If
         ' Process each line from the output list
+
         For Each line As String In outList
-            ' Remove Line Feed (LF) characters explicitly replace with vbCR
-            line = line.Replace(vbLf, vbCr)
-            line = regex.Replace(line, "") ' Remove non-printable characters
+            Try
+                ' Remove Line Feed (LF) characters explicitly replace with vbCR
+                line = line.Replace(vbLf, vbCr)
+                If OS <> 3 Then
+                    line = regex.Replace(line, "") ' Remove non-printable characters
+                    ' Replace empty lines with a space
+                    line = If(String.IsNullOrEmpty(line), " ", line)
+                End If
 
-            ' Replace empty lines with a space
-            line = If(String.IsNullOrEmpty(line), " ", line)
+                ' Handle form feed and create new pages as needed
+                If (line.Length > 0) Then
+                    If (line(0) = vbFormFeed) Then
+                        InitializeNewPage()
+                    End If
+                End If
 
-            ' Handle form feed and create new pages as needed
-            If line(0) = vbFormFeed Then
-                InitializeNewPage()
-            End If
+                ' Create a new page if current page is full (adjust according to page layout)
+                If currentLine = (linesPerPage - 1) Then ' Max lines per page
+                    InitializeNewPage()
+                End If
 
-            ' Create a new page if current page is full (adjust according to page layout)
-            If currentLine = (linesPerPage - 1) Then ' Max lines per page
-                InitializeNewPage()
-            End If
-
-            ' Finally remove the FF character from the printable line.
-            line = line.Replace(vbFormFeed, String.Empty)
-
+                ' Finally remove the FF character from the printable line.
+                line = line.Replace(vbFormFeed, String.Empty)
+            Catch ex As Exception
+                Stop
+            End Try
             ' Draw the line of text
             gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
 
