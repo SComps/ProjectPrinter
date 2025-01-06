@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.1.6.270</AssemblyVersion>
-    <FileVersion>2025.1.6.270</FileVersion>
+    <AssemblyVersion>2025.1.6.273</AssemblyVersion>
+    <FileVersion>2025.1.6.273</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +17,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="devices.cfg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="greenbar.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
