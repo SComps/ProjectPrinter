@@ -90,49 +90,59 @@ Public Class devs
     Private Async Function TaskSleepAsync(seconds As Integer) As Task
         Await Task.Delay(seconds * 1000)
     End Function
+
+    Private Function DataIsAvailable() As Boolean
+        'Program.Log($"{DevName} {clientStream.DataAvailable.ToString}")
+        Return clientStream.DataAvailable
+    End Function
+    Private Async Function WaitForMoreDataAsync(dataAvailableCondition As Func(Of Boolean), timeoutMilliseconds As Integer, checkIntervalMilliseconds As Integer) As Task(Of Boolean)
+        Dim elapsed As Integer = 0
+
+        While elapsed < timeoutMilliseconds
+            If dataAvailableCondition() Then
+                Return True ' Data is available, exit early.
+            End If
+
+            Await Task.Delay(checkIntervalMilliseconds) ' Wait before checking again.
+            elapsed += checkIntervalMilliseconds
+        End While
+
+        Return False ' Timed out waiting for data.
+    End Function
+
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
         Dim buffer(4096) As Byte ' Larger buffer for fewer ReadAsync calls
         Dim dataBuilder As New StringBuilder()
+        Dim lastReceivedTime As DateTime = DateTime.Now
+        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(2) ' Timeout period (2 seconds)
 
         Try
             While Not cancellationToken.IsCancellationRequested
-                If clientStream.DataAvailable Then
-                    Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
-                    If recd > 0 Then
-                        Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
-                        dataBuilder.Append(receivedPart)
+                ' Check for data availability or cancellation
+                If Not clientStream.DataAvailable Then
+                    ' Wait for data to become available (with a small delay to avoid busy-waiting)
+                    Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
+                    ' If no data available and we are inactive for too long, process the current document
+                    If DateTime.Now - lastReceivedTime > inactivityTimeout AndAlso dataBuilder.Length > 0 Then
+                        ' Process the complete document if we have accumulated data and timeout has occurred
+                        ProcessDocumentData(dataBuilder.ToString())
+                        dataBuilder.Clear() ' Clear data for the next document
+                        lastReceivedTime = DateTime.Now ' Reset the inactivity timer
                     End If
                 Else
-                    Await Task.Delay(10) ' Small delay to reduce CPU churn
-                End If
+                    ' If data is available, read it
+                    Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                    If recd > 0 Then
+                        ' Append received data to the data builder
+                        Dim receivedPart As String = Encoding.UTF8.GetString(buffer, 0, recd)
+                        dataBuilder.Append(receivedPart)
 
-                ' Process complete lines
-                Dim fullData As String = dataBuilder.ToString()
-                Dim lines As New List(Of String)()
-                Dim currentLine As New StringBuilder()
-
-                For Each c As Char In fullData
-                    If c = vbCr Then
-                        lines.Add(currentLine.ToString())
-                        currentLine.Clear()
-                    ElseIf c = Chr(12) Then ' FF character
-                        lines.Add(currentLine.ToString())
-                        lines.Add(c.ToString())
-                        currentLine.Clear()
-                    Else
-                        currentLine.Append(c)
+                        ' Update last received time to now
+                        lastReceivedTime = DateTime.Now
                     End If
-                Next
-
-                dataBuilder.Clear()
-                dataBuilder.Append(currentLine.ToString())
-
-                If lines.Any() Then
-                    currentDocument.AddRange(lines)
-                    ProcessDocument(currentDocument)
-                    currentDocument.Clear()
                 End If
+
             End While
         Catch ex As OperationCanceledException
             Log("Receiving canceled.")
@@ -141,9 +151,45 @@ Public Class devs
         End Try
     End Function
 
+    Private Sub ProcessDocumentData(documentData As String)
+        ' Split the data into lines and process it
+        Dim lines As New List(Of String)()
+        Dim currentLine As New StringBuilder()
+
+        ' Process each character in the full data
+        For Each c As Char In documentData
+            If c = vbCr Then
+                lines.Add(currentLine.ToString())
+                currentLine.Clear()
+            ElseIf c = Chr(12) Then ' FF character (form feed)
+                lines.Add(currentLine.ToString())
+                lines.Add(c.ToString())
+                currentLine.Clear()
+            Else
+                currentLine.Append(c)
+            End If
+        Next
+
+        ' Add any remaining line data
+        If currentLine.Length > 0 Then
+            lines.Add(currentLine.ToString())
+        End If
+
+        ' Process the complete lines (document)
+        If lines.Any() Then
+            currentDocument.AddRange(lines)
+            ProcessDocument(currentDocument)
+            currentDocument.Clear() ' Clear for the next document
+        End If
+    End Sub
+
+
+
 
     ' THIS IS AN OLD VERSION OF RECEIVEDATAASYNC.  IT IS HERE FOR REFERENCE ONLY AND WILL BE REMOVED
     ' DO NOT USE THIS FUNCTION.
+
+    ' If you use this function, CPU usage will spike dramatically.
     Private Async Function OldReceiveDataAsync(cancellationToken As CancellationToken) As Task
         Dim lastLineReceived As DateTime = Now()
         Dim buffer(140) As Byte
@@ -225,7 +271,7 @@ Public Class devs
 
     Private Sub ProcessDocument(doc As List(Of String))
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
-        If doc.Count > 4 Then
+        If doc.Count > 5 Then
 
             Receiving = False
             Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
@@ -258,7 +304,7 @@ Public Class devs
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
             End Select
 
-            JobID = vals.JobId
+            JobID = vals.JobID
             JobName = vals.JobName
             UserID = vals.User
             Dim fnFmt As String = "PRT-{0}-{1}-{2}.txt"
