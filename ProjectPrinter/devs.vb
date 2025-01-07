@@ -164,26 +164,33 @@ Public Class devs
         Dim currentLine As New StringBuilder()
 
         ' Process each character in the full data
+        ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
+        ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
+        ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
         For Each c As Char In documentData
-            If OS = 3 Then
-                If c = vbCr Then c = ""
-                If c = vbLf Then c = vbCr
-            End If
-            If (c = vbCr) Then
-                currentLine.Append(c.ToString)
-                If currentLine.ToString.Trim.Length > 0 Then
+            Select Case c
+                Case vbCr
+                    'Pass it into the string as printable data
+                    currentLine.Append(c)
+                Case vbLf
+                    ' New Line, return to 'home' position implied.
+                    If currentLine.ToString.Trim.Length > 0 Then
+                        lines.Add(currentLine.ToString())
+                        currentLine.Clear()
+                    Else
+                        lines.Add(" ")
+                        currentLine.Clear()
+                    End If
+                Case vbFormFeed
+                    'New Line, Form Feed, New Line
                     lines.Add(currentLine.ToString())
-                Else
-                    lines.Add(" " & vbCr)
-                End If
-                currentLine.Clear()
-            ElseIf c = Chr(12) Then ' FF character (form feed)
-                lines.Add(currentLine.ToString())
-                lines.Add(c.ToString())
-                currentLine.Clear()
-            Else
-                currentLine.Append(c)
-            End If
+                    lines.Add(c.ToString())
+                    currentLine.Clear()
+                Case Else
+                    ' Process anything as as data
+                    currentLine.Append(c)
+            End Select
+
         Next
 
         ' Add any remaining line data
@@ -194,12 +201,14 @@ Public Class devs
         ' Process the complete lines (document)
         If lines.Any() Then
             currentDocument.AddRange(lines)
+            'Stop
             ProcessDocument(currentDocument)
             Program.Log($"[{DevName}] Waiting for new document.")
             currentDocument.Clear() ' Clear for the next document
             Receiving = False
         End If
     End Sub
+
 
     ' Disconnects the client
     Public Sub Disconnect()
@@ -223,15 +232,15 @@ Public Class devs
             Dim idx As Integer = 0
             Do
                 ' loop through until we hit real data
+                If doc(idx) = vbFormFeed Then
+                    doc(idx) = " " & vbLf
+                    Program.Log($"[{DevName}] Removing unneeded FF from document.")
+                    Exit Do ' The first form feed is probably junk, but it does start data.
+                End If
                 If doc(idx).Trim = "" Then
-                    doc(idx) = ""
+                    doc(idx) = " "
                     Program.Log($"[{DevName}] Removing leading blank line from document.")
                 End If
-                If doc(idx).Trim = vbFormFeed Then
-                    doc(idx) = ""
-                    Program.Log($"[{DevName}] Removing unneeded FF from document.")
-                End If
-
                 If doc(idx).Trim <> "" Then Exit Do
                 idx = idx + 1
             Loop
@@ -264,8 +273,8 @@ Public Class devs
                 l = l.Replace(vbCr, "<CR>" & vbCr)
                 l = l.Replace(vbLf, "<LF>")
                 l = l.Replace(vbFormFeed, "<FF>")
-                writer.Write(l)
-                Next
+                writer.WriteLine(l)
+            Next
                 writer.Flush()
                 writer.Close()
 
@@ -408,6 +417,12 @@ Public Class devs
             StartLine = 3
         End If
 
+        If OS = 5 Then
+            firstline = 7
+            linesPerPage = 66
+            StartLine = 2
+        End If
+
         ' Define margins (1/2 inch for left and right margins)
         Dim leftMargin As Double = 30 ' 1/2 inch margin
         Dim rightMargin As Double = 30 ' 1/2 inch margin
@@ -470,37 +485,59 @@ Public Class devs
 
         For Each line As String In outList
             Try
-                ' Remove Line Feed (LF) characters explicitly replace with vbCR
-                line = line.Replace(vbLf, vbCr)
+                ' Remove non-printable characters (same as before)
                 If OS <> 3 Then
-                    line = regex.Replace(line, "") ' Remove non-printable characters
+                    line = regex.Replace(line, String.Empty) ' Remove non-printable characters
                     ' Replace empty lines with a space
                     line = If(String.IsNullOrEmpty(line), " ", line)
                 End If
 
-                ' Handle form feed and create new pages as needed
-                If (line.Length > 0) Then
-                    If (line(0) = vbFormFeed) Then
-                        InitializeNewPage()
-                    End If
-                End If
-
-                ' Create a new page if current page is full (adjust according to page layout)
-                If currentLine = (linesPerPage - 1) Then ' Max lines per page
+                ' Handle Form Feed (FF) and create a new page if necessary
+                If line.StartsWith(vbFormFeed) Then
                     InitializeNewPage()
                 End If
 
-                ' Finally remove the FF character from the printable line.
-                line = line.Replace(vbFormFeed, String.Empty)
-            Catch ex As Exception
-                'Stop       ' Debugging stop only.
-            End Try
-            ' Draw the line of text
-            gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                ' Create a new page if current page is full
+                If currentLine >= linesPerPage Then
+                    InitializeNewPage()
+                End If
 
-            ' Move down for next line
-            y += lineHeight ' Adjust to maintain 66 lines per page
-            currentLine += 1
+                ' Remove FF characters before drawing
+                If line <> vbFormFeed Then
+                    'If the line is just a FF then don't print it, we just created a new page
+
+                    ' Check if the line contains embedded CRs (not at the end)
+                    If line.Contains(Chr(13)) AndAlso Not line.EndsWith(Chr(13)) Then
+                        ' Split the line by CR characters (we will handle the overstrike behavior here)
+                        Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
+
+                        ' Track the current starting position for drawing
+                        Dim currentX As Double = leftMargin
+
+                        ' Iterate through the segments
+                        For Each segment As String In segments
+                            If Not String.IsNullOrEmpty(segment) Then
+                                ' Draw the base text segment at the starting position
+                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+
+                                ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
+                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                            End If
+                        Next
+                    Else
+                        ' If there are no CRs, just print the line normally
+                        gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                    End If
+
+                    ' Move down for the next line
+                    y += lineHeight
+                    currentLine += 1
+                End If
+
+
+            Catch ex As Exception
+                ' Handle errors (e.g., invalid characters or drawing issues)
+            End Try
         Next
 
         ' Save the document and return the output file
