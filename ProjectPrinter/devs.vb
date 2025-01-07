@@ -447,8 +447,10 @@ Public Class devs
                                     gfx = XGraphics.FromPdfPage(page)
 
                                     ' Draw background image to cover entire page
-                                    gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
-
+                                    'gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                    Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
+                                    Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
+                                    DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
                                     ' Recalculate available width for text after margins
                                     availableWidth = page.Width.Point - leftMargin - rightMargin
 
@@ -549,6 +551,92 @@ Public Class devs
         ' Ensure we properly end the function
         Return outputFile
     End Function
+
+    ' EXPERIMENTAL
+    Public Sub DrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
+        Const feedHoleRadius As Double = 5.5
+        Dim pageWidth As Double = gfx.PageSize.Width
+        Dim pageHeight As Double = gfx.PageSize.Height
+
+        ' Alignment fiducial - Draw this first to avoid being overwritten
+        If drawBG Then
+            Dim darkPen As New XPen(dark, 0.7)
+            gfx.DrawLine(darkPen, 20, 54 - feedHoleRadius * 2, 20, 54 + feedHoleRadius * 2) ' Vertical line
+            gfx.DrawLine(darkPen, 20 - feedHoleRadius * 2, 54, 20 + feedHoleRadius * 2, 54) ' Horizontal line
+            darkPen.Width = 1.5
+            gfx.DrawEllipse(darkPen, 20 - (feedHoleRadius + 0.6), 54 - (feedHoleRadius + 0.6), (feedHoleRadius + 0.6) * 2, (feedHoleRadius + 0.6) * 2) ' Circle
+        End If
+
+        ' Tractor feed holes - Draw circles at specified positions
+        Dim grayPen As New XPen(XColors.LightGray, 0.75)
+        Dim lightGrayBrush As New XSolidBrush(XColor.FromArgb(230, 230, 230))
+        ' Top holes
+        gfx.DrawEllipse(grayPen, lightGrayBrush, 20 - (feedHoleRadius + 1), 18 - (feedHoleRadius + 1), (feedHoleRadius + 1) * 2, (feedHoleRadius + 1) * 2)
+        gfx.DrawEllipse(grayPen, lightGrayBrush, pageWidth - 20 - (feedHoleRadius + 1), 18 - (feedHoleRadius + 1), (feedHoleRadius + 1) * 2, (feedHoleRadius + 1) * 2)
+        ' Bottom holes
+        Dim y As Double
+        For i As Integer = 1 To 21
+            y = 18 + 18 * 2 * i
+            gfx.DrawEllipse(grayPen, lightGrayBrush, 20 - feedHoleRadius, y - feedHoleRadius, feedHoleRadius * 2, feedHoleRadius * 2)
+            gfx.DrawEllipse(grayPen, lightGrayBrush, pageWidth - 20 - feedHoleRadius, y - feedHoleRadius, feedHoleRadius * 2, feedHoleRadius * 2)
+        Next
+
+        If Not drawBG Then Exit Sub
+
+        ' Print area alignment arrows (left and right sides)
+        gfx.DrawPolygon(New XPen(XColors.Transparent), New XSolidBrush(light), New XPoint() {
+            New XPoint(40 + 2, 72 - 11),
+            New XPoint(40 + 2 + 5, 72),
+            New XPoint(40 + 2 + 10, 72 - 11)
+        }, XFillMode.Winding)
+
+        gfx.DrawPolygon(New XPen(XColors.Transparent), New XSolidBrush(light), New XPoint() {
+            New XPoint(pageWidth - 40 - 2, 72 - 11),
+            New XPoint(pageWidth - 40 - 2 - 5, 72),
+            New XPoint(pageWidth - 40 - 2 - 10, 72 - 11)
+        }, XFillMode.Winding)
+
+        ' Green bars (faint) - Draw faint green bars between vertical rules, without overwriting other elements
+        Dim barHeight As Double = 36
+        Dim barCount As Integer = CInt(pageHeight / barHeight) + 1
+        For i As Integer = 0 To barCount - 1
+            Dim yPos As Double = 72 + (i * barHeight)
+
+            ' Alternate faint green with white for the bars
+            Dim brush As XSolidBrush
+            If i Mod 2 = 0 Then
+                brush = New XSolidBrush(XColor.FromArgb(220, 255, 220)) ' Faint pale green
+            Else
+                brush = New XSolidBrush(XColor.FromArgb(255, 255, 255)) ' White
+            End If
+
+            ' Draw a faint green bar only between vertical rules (adjusted width)
+            gfx.DrawRectangle(brush, 40, yPos, pageWidth - 80, barHeight) ' Adjusted to leave space for vertical lines
+        Next
+
+        ' Draw vertical lines - Left and right side
+        Dim darkPenVertical As New XPen(dark, 0.5)
+        gfx.DrawLine(darkPenVertical, 30, 72, 30, pageHeight - 1) ' Left vertical line
+        gfx.DrawLine(darkPenVertical, 40, 72, 40, pageHeight - 1) ' Left vertical line
+        gfx.DrawLine(darkPenVertical, pageWidth - 30, 72, pageWidth - 30, pageHeight - 1) ' Right vertical line
+        gfx.DrawLine(darkPenVertical, pageWidth - 40, 72, pageWidth - 40, pageHeight - 1) ' Right vertical line
+
+        ' Left margin numbers
+        Dim font As New XFont("C:\Windows\Fonts\segoeui.ttf", 7)
+        gfx.DrawString("1", font, New XSolidBrush(dark), New XPoint(30, 72))
+        For i As Integer = 1 To 60
+            gfx.DrawString((i + 1).ToString(), font, New XSolidBrush(dark), New XPoint(30, 72 + (i * 12)))
+        Next
+
+        ' Right margin numbers
+        gfx.DrawString("1", font, New XSolidBrush(dark), New XPoint(pageWidth - 40, 72))
+        For i As Integer = 1 To 80
+            gfx.DrawString((i + 1).ToString(), font, New XSolidBrush(dark), New XPoint(pageWidth - 40, 72 + (i * 9)))
+        Next
+    End Sub
+
+
+
 
 
 
