@@ -31,6 +31,7 @@ Public Enum OSType
     OS_VMS
     OS_MPE
     OS_RSTS
+    OS_VM370
 End Enum
 Module Program
 

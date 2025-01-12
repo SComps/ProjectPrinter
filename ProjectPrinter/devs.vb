@@ -1,8 +1,10 @@
 ﻿Imports System.ComponentModel
 Imports System.ComponentModel.Design
+Imports System.Data.Common
 Imports System.IO
 Imports System.Net.Http
 Imports System.Net.Sockets
+Imports System.Reflection.Metadata
 Imports System.Runtime
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.Serialization
@@ -33,6 +35,7 @@ Public Class devs
     Private currentDocument As New List(Of String)
     Private IsConnected As Boolean = False
     Private Receiving = False
+    Private JobNumber As Integer = 0
     Public ReadOnly Property Connected As Boolean
         Get
             Return IsConnected
@@ -134,7 +137,7 @@ Public Class devs
                     ' If data is available, read it
                     If Not Receiving Then
                         Receiving = True
-                        If OS <> 4 Then
+                        If OS <> OSType.OS_RSTS Then
                             Program.Log($"[{DevName}] receiving data from remote host.")
                         Else
                             Program.Log($"[{DevName}] receiving data from low speed device for RSTS/E")
@@ -163,6 +166,7 @@ Public Class devs
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
 
+
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
@@ -170,8 +174,8 @@ Public Class devs
         For Each c As Char In documentData
             Select Case c
                 Case vbCr
-                    'Pass it into the string as printable data
-                    currentLine.Append(c)
+                    'Pass it into the string as printable data if it's VM370
+                    If OS = OSType.OS_VM370 Then currentLine.Append(c)
                 Case vbLf
                     ' New Line, return to 'home' position implied.
                     If currentLine.ToString.Trim.Length > 0 Then
@@ -201,7 +205,6 @@ Public Class devs
         ' Process the complete lines (document)
         If lines.Any() Then
             currentDocument.AddRange(lines)
-            'Stop
             ProcessDocument(currentDocument)
             Program.Log($"[{DevName}] Waiting for new document.")
             currentDocument.Clear() ' Clear for the next document
@@ -228,35 +231,42 @@ Public Class devs
 
             Receiving = False
             Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
-            ' Lets try to eat any blank lines or form feeds before any real data
-            Dim idx As Integer = 0
-            Do
-                ' loop through until we hit real data
-                If doc(idx) = vbFormFeed Then
-                    doc(idx) = " " & vbLf
-                    Program.Log($"[{DevName}] Removing unneeded FF from document.")
-                    Exit Do ' The first form feed is probably junk, but it does start data.
-                End If
-                If doc(idx).Trim = "" Then
-                    doc(idx) = " "
-                    Program.Log($"[{DevName}] Removing leading blank line from document.")
-                End If
-                If doc(idx).Trim <> "" Then Exit Do
-                idx = idx + 1
-            Loop
+            If OS <> OSType.OS_RSTS Then
+                ' Lets try to eat any blank lines or form feeds before any real data
+                Program.Log($"[{DevName}] Examining document information.")
+                Dim idx As Integer = 0
+                Do
+                    doc(idx) = doc(idx).Trim
+                    'Program.Log($"[{DevName}] '{doc(idx)}'")
+                    ' loop through until we hit real data
+                    If doc(idx) = vbFormFeed Then
+                        doc(idx) = " " & vbLf
+                        Exit Do ' The first form feed is probably junk, but it does start data.
+                    End If
+                    If doc(idx).Trim = "" Then
+                        doc(idx) = " "
+                    End If
+                    If doc(idx).Trim <> "" Then Exit Do
+                    idx = idx + 1
+                Loop
+            End If
+            JobNumber = JobNumber + 1
             Dim JobID, JobName, UserID As String
             Select Case OS
-                Case 1
+                Case OSType.OS_VMS
                     Program.Log($"[{DevName}] OS type is VMS")
                     vals = VMS_ExtractJobInformation(doc)
-                Case 3
+                Case OSType.OS_MPE
                     Program.Log($"[{DevName}] OS type is MPE")
                     vals = MPE_ExtractJobInformation(doc)
-                Case 4
+                Case OSType.OS_RSTS
                     Program.Log($"[{DevName}] OS type is RSTS/E")
                     vals = RSTS_ExtractJobInformation(doc)
+                Case OSType.OS_VM370
+                    Program.Log($"[{DevName}] OS type is VM/370")
+                    vals = VM370_ExtractJobInformation(doc)
                 Case Else
-                    Program.Log($"[{DevName}] OS type is not known.")
+                    Program.Log($"[{DevName}] OS type is not known. [{OS}]")
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
             End Select
 
@@ -275,13 +285,13 @@ Public Class devs
                 l = l.Replace(vbFormFeed, "<FF>")
                 writer.WriteLine(l)
             Next
-                writer.Flush()
-                writer.Close()
+            writer.Flush()
+            writer.Close()
 
             CreatePDF(JobName, doc, pdfName)
 
-            Else
-                Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
+        Else
+            Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
             Receiving = False
         End If
     End Sub
@@ -291,6 +301,31 @@ Public Class devs
         Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
     End Function
 
+    Private Function VM370_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving VM/370 job information.")
+        For Each line As String In lines
+            line = line.ToUpper.Trim
+            Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+            If parts.Count > 2 Then
+                If ((parts(0) = "LOCATION") And (parts(1) = "USERID")) Then
+                    Program.Log($"[{DevName}] Determined VM370 UserId: {parts(3)}")
+                    user = parts(3)
+                End If
+                If ((parts(0) = "SPOOL") And (parts(1) = "FILE") And (parts(2) = "NAME")) Then
+                    jobName = $"{parts(4)}.{parts(5)}"
+                    Program.Log($"[{DevName}] Setting VM370 Jobname to {jobName}")
+                End If
+                If ((parts(0) = "SPOOL") And (parts(1) = "FILE") And (parts(2) = "ID")) Then
+                    jobId = parts(3)
+                    Program.Log($"[{DevName}] VM370 Spool ID {parts(3)}")
+                End If
+            End If
+        Next
+        Return (jobName, jobId, user)
+    End Function
     Private Function RSTS_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
         Dim jobName As String = "UnknownJob"
         Dim jobId As String = "0000"
@@ -319,8 +354,9 @@ Public Class devs
                     user = Left(jobData, EOU)
                     ' The job data is from EOU+1 to the end of the string
                     jobName = Right(jobData, (Len(jobData) - (EOU)))
-                    ' Since RSTS doesn't give us the Job number, we'll put the queue name here
-                    jobId = jobQueue
+                    ' Since RSTS doesn't give us the Job number, we'll put the rolling JobNumber here
+                    ' with the current short date
+                    jobId = $"{Now.ToShortDateString}({JobNumber})".Replace("/", "-")
                 End If
             End If
         Next
@@ -405,19 +441,25 @@ Public Class devs
         ' Initialize background image (greenbar.jpg) to cover entire page
         Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
 
-        If OS >= 3 Then         'MPE and RSTS/E may need special handling.  For now, same as VMS
+        If OS = OSType.OS_RSTS Then
+            firstline = 27
+            linesPerPage = 66
+            StartLine = 0
+        End If
+
+        If OS = OSType.OS_MPE Then         '
             firstline = 27
             linesPerPage = 66
             StartLine = 3
         End If
 
-        If OS = 1 Then
+        If OS = OSType.OS_VMS Then
             firstline = 27
             linesPerPage = 66
             StartLine = 3
         End If
 
-        If OS = 5 Then
+        If OS = OSType.OS_VM370 Then
             firstline = 7
             linesPerPage = 66
             StartLine = 2
@@ -447,10 +489,10 @@ Public Class devs
                                     gfx = XGraphics.FromPdfPage(page)
 
                                     ' Draw background image to cover entire page
-                                    'gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
-                                    Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
-                                    Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
-                                    DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
+                                    gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                    'Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
+                                    'Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
+                                    'DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
                                     ' Recalculate available width for text after margins
                                     availableWidth = page.Width.Point - leftMargin - rightMargin
 
@@ -488,7 +530,7 @@ Public Class devs
         For Each line As String In outList
             Try
                 ' Remove non-printable characters (same as before)
-                If OS <> 3 Then
+                If OS <> OSType.OS_RSTS Then
                     line = regex.Replace(line, String.Empty) ' Remove non-printable characters
                     ' Replace empty lines with a space
                     line = If(String.IsNullOrEmpty(line), " ", line)
