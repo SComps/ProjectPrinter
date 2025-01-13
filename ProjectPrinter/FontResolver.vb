@@ -8,7 +8,8 @@ Public Class ChainprinterFontResolver
 
     ' Constructor to initialize the path of the Chainprinter font
     Public Sub New()
-        _fontPath = Path.Combine(Directory.GetCurrentDirectory(), "chainprinter.ttf")
+        '_fontPath = Path.Combine(Directory.GetCurrentDirectory(), "chainprinter.ttf")
+        _fontPath = Path.Combine(Directory.GetCurrentDirectory(), "ibmplexmono.ttf")
     End Sub
 
     Public Function GetFont(faceName As String) As Byte() Implements IFontResolver.GetFont

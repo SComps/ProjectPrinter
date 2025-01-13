@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.1.11.420</AssemblyVersion>
-    <FileVersion>2025.1.11.420</FileVersion>
+    <AssemblyVersion>2025.1.12.428</AssemblyVersion>
+    <FileVersion>2025.1.12.428</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,8 +19,17 @@
     <None Update="devices.cfg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="dotmatrix.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="greenbar.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="ibmplexmono.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="lineprinter.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

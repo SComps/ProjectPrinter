@@ -454,7 +454,7 @@ Public Class devs
         End If
 
         If OS = OSType.OS_VMS Then
-            firstline = 27
+            firstline = 25
             linesPerPage = 66
             StartLine = 3
         End If
