@@ -37,8 +37,9 @@ Module dev_console
             End
         Else
             Console.WriteLine($"Your screen is {max_Cols}x{max_Rows}")
-            Console.ReadKey()
         End If
+        BackgroundColor = ConsoleColor.Black
+        ForegroundColor = ConsoleColor.White
         Console.Clear()
         If Not File.Exists("devices.cfg") Then
             Dim fs As FileStream = File.Open("devices.cfg", FileMode.Create)
@@ -83,7 +84,8 @@ Module dev_console
         item = item - 1
         Dim thisDev As devs = devList(item)
         Console.Clear()
-        Console.ResetColor()
+        Console.BackgroundColor = ConsoleColor.Black
+        Console.ForegroundColor = ConsoleColor.White
         Dim bannerLine As String = StrDup(max_Cols, "=")
         Say(bannerLine, 0, 0, ConsoleColor.White)
         Say(CenterString($"E D I T   D E V I C E", max_Cols), 0, 1, ConsoleColor.White)
@@ -115,7 +117,7 @@ Module dev_console
         Dim myDest As String = GetString(thisDev.DevDest, 26, 15, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Dim myAuto As String = GetString(thisDev.Auto, 26, 17, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Dim myPDF As String = GetString(thisDev.PDF, 26, 19, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Say("Save? (Y/n) ==> ", 1, max_Rows - 5, ConsoleColor.Green)
+        Say("Save? (Y/n) ==> ", 1, max_Rows - 3, ConsoleColor.Green)
         Dim opt As String = Console.ReadLine
     End Sub
 
@@ -186,7 +188,8 @@ Module dev_console
         End Using
     End Sub
     Sub DisplayMenu()
-        Console.ResetColor()
+        BackgroundColor = ConsoleColor.Black
+        ForegroundColor = ConsoleColor.White
         Dim bannerLine As String = StrDup(max_Cols, "=")
         Dim devLine As String = ""
         If max_Cols > 90 Then
