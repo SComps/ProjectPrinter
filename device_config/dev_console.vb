@@ -35,6 +35,9 @@ Module dev_console
             Console.WriteLine($"and 24 columns high.  It is currently {max_Cols}x{max_Rows}")
             Console.WriteLine("Please correct this problem and try again.")
             End
+        Else
+            Console.WriteLine($"Your screen is {max_Cols}x{max_Rows}")
+            Console.ReadKey()
         End If
         Console.Clear()
         If Not File.Exists("devices.cfg") Then
