@@ -58,8 +58,8 @@ Module dev_console
                 Case "*CC*"
 
                 Case "EXIT"
-                    Console.Clear()
                     Console.ResetColor()
+                    Console.Clear()
                     End
                 Case Else
                     Dim itemID As Integer = Val(sel)
@@ -117,7 +117,7 @@ Module dev_console
         Dim myDest As String = GetString(thisDev.DevDest, 26, 15, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Dim myAuto As String = GetString(thisDev.Auto, 26, 17, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Dim myPDF As String = GetString(thisDev.PDF, 26, 19, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Say("Save? (Y/n) ==> ", 1, max_Rows - 3, ConsoleColor.Green)
+        Say("Save? (Y/n) ==> ", 1, max_Rows - 4, ConsoleColor.Green)
         Dim opt As String = Console.ReadLine
     End Sub
 
