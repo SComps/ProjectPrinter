@@ -206,7 +206,7 @@ Module dev_console
         Console.SetCursorPosition(1, 5)
         Console.ForegroundColor = ConsoleColor.Red
         Console.Write(ErrMsg)
-        Console.ResetColor()
+        ConsoleResetColor()
         Console.SetCursorPosition(0, 6)
         Console.WriteLine(devLine)
         For x = 0 To (devList.Count - 1)
@@ -247,7 +247,7 @@ Module dev_console
             End If
             Console.ForegroundColor = ConsoleColor.Green
             Console.Write(thisDev.DevDest)
-            Console.ResetColor()
+            ConsoleResetColor()
         Next
         Console.SetCursorPosition(1, max_Rows - 3)
         Console.ForegroundColor = ConsoleColor.White
@@ -257,6 +257,10 @@ Module dev_console
 
     End Sub
 
+    Public Sub ConsoleResetColor()
+        Console.ForegroundColor = ConsoleColor.White
+        Console.BackgroundColor = ConsoleColor.Black
+    End Sub
     Public Sub SetError(txt As String)
         ErrMsg = txt
         If txt.Trim <> "" Then
