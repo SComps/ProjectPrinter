@@ -91,6 +91,7 @@ Module dev_console
         Console.BackgroundColor = ConsoleColor.Black
         Console.ForegroundColor = ConsoleColor.White
         Console.Clear()
+        Console.Write("Hey Rudi!!!  Baldurs Gate forever!")
         Console.Write("Unsaved changes may be lost.  Are you sure? [Y/n] ==> ")
         Dim opt As String = Console.ReadLine
         If opt.ToUpper.StartsWith("Y") Then
@@ -143,10 +144,10 @@ Module dev_console
         Dim opt As String = Console.ReadLine
         If opt.ToUpper.StartsWith("Y") Then
             ' move what's been entered into the temporary object
-            thisDev.DevName = myName
-            thisDev.DevDescription = myDesc
-            thisDev.DevType = myType
-            thisDev.ConnType = myConn
+            thisDev.DevName = myName.Trim
+            thisDev.DevDescription = myDesc.Trim
+            thisDev.DevType = Val(myType)
+            thisDev.ConnType = Val(myConn)
             thisDev.OS = Val(myOS)
             thisDev.DevDest = myDest
             Select Case myAuto.ToUpper.Trim

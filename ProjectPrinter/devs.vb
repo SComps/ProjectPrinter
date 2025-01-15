@@ -12,6 +12,7 @@ Imports System.Runtime.Serialization.Json
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports PdfSharp.Charting
 Imports PdfSharp.Drawing
 Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
@@ -228,11 +229,12 @@ Public Class devs
     Private Sub ProcessDocument(doc As List(Of String))
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         If doc.Count > 10 Then
-
+            'Stop
             Receiving = False
             Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
-            If OS <> OSType.OS_RSTS Then
+            If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
                 ' Lets try to eat any blank lines or form feeds before any real data
+                ' Don't do it for RSTS/E or MVS38J
                 Program.Log($"[{DevName}] Examining document information.")
                 Dim idx As Integer = 0
                 Do
@@ -253,6 +255,9 @@ Public Class devs
             JobNumber = JobNumber + 1
             Dim JobID, JobName, UserID As String
             Select Case OS
+                Case OSType.OS_MVS38J
+                    Program.Log($"[{DevName}] OS type os MVS 3.8J OS/VS2")
+                    vals = MVS38J_ExtractJobInformation(doc)
                 Case OSType.OS_VMS
                     Program.Log($"[{DevName}] OS type is VMS")
                     vals = VMS_ExtractJobInformation(doc)
@@ -299,6 +304,33 @@ Public Class devs
     Private Function IsTrailerPage(lines As String()) As Boolean    'VMS trailer page
         ' Check if the trailer contains "COMPLETED ON" indicating job completion (VMS)
         Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
+    End Function
+
+    Private Function MVS38J_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving MVS 3.8J (OS/VS2) job information.")
+        For Each line As String In lines
+            line = line.ToUpper.Trim
+            If line.Trim <> "" Then
+                Try
+                    Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+                    If parts(0).StartsWith("****") Then
+                        ' Usually a pretty good job information line for MVS.
+                        ' But lets make sure we have END and JOB following it.
+                        If (parts(1) = "END") And (parts(2) = "JOB") Then
+                            jobId = parts(3)
+                            jobName = parts(4)
+                            user = parts((parts.Count - 7))
+                        End If
+                    End If
+                Catch ex As Exception
+                    ' Don't do anything.
+                End Try
+            End If
+        Next
+        Return (jobName, jobId, user)
     End Function
 
     Private Function VM370_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
@@ -429,169 +461,182 @@ Public Class devs
         Return (jobName, jobId, user)
     End Function
     Public Function CreatePDF(title As String, outList As List(Of String), filename As String) As String
-        Program.Log($"{DevName} beginning PDF generation.")
-        Dim firstline As Double = 0
-        Dim linesPerPage As Integer = 66
-        Dim StartLine = 0
-        ' Initialize the PDF document
-        Dim doc As New PdfSharp.Pdf.PdfDocument
-        GlobalFontSettings.FontResolver = New ChainprinterFontResolver()
-        doc.Info.Title = title
+        Try
+            Program.Log($"{DevName} beginning PDF generation.")
+            Dim firstline As Double = 0
+            Dim linesPerPage As Integer = 66
+            Dim StartLine = 0
+            ' Initialize the PDF document
+            Dim doc As New PdfSharp.Pdf.PdfDocument
+            GlobalFontSettings.FontResolver = New ChainprinterFontResolver()
+            doc.Info.Title = title
 
-        ' Initialize background image (greenbar.jpg) to cover entire page
-        Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
+            ' Initialize background image (greenbar.jpg) to cover entire page
+            Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
 
-        If OS = OSType.OS_RSTS Then
-            firstline = 27
-            linesPerPage = 66
-            StartLine = 0
-        End If
+            If OS = OSType.OS_MVS38J Then
+                Program.Log($"Setting page for MVS 3.8J")
+                firstline = 16
+                linesPerPage = 66
+                StartLine = 0
+            End If
 
-        If OS = OSType.OS_MPE Then         '
-            firstline = 27
-            linesPerPage = 66
-            StartLine = 3
-        End If
+            If OS = OSType.OS_RSTS Then
+                firstline = 27
+                linesPerPage = 66
+                StartLine = 0
+            End If
 
-        If OS = OSType.OS_VMS Then
-            firstline = 25
-            linesPerPage = 66
-            StartLine = 3
-        End If
+            If OS = OSType.OS_MPE Then         '
+                firstline = 27
+                linesPerPage = 66
+                StartLine = 3
+            End If
 
-        If OS = OSType.OS_VM370 Then
-            firstline = 7
-            linesPerPage = 66
-            StartLine = 2
-        End If
+            If OS = OSType.OS_VMS Then
+                firstline = 25
+                linesPerPage = 66
+                StartLine = 3
+            End If
 
-        ' Define margins (1/2 inch for left and right margins)
-        Dim leftMargin As Double = 30 ' 1/2 inch margin
-        Dim rightMargin As Double = 30 ' 1/2 inch margin
-        Dim availableWidth As Double ' Width for text after margins
-        Dim fontSize As Double
-        Dim font As XFont = Nothing ' Font will be initialized later
-        Dim page As PdfPage = Nothing ' Page will be initialized later
-        Dim gfx As XGraphics = Nothing ' gfx will be initialized later
-        Dim y As Double = firstline ' Starting Y position for text
-        Dim currentLine As Integer = StartLine
+            If OS = OSType.OS_VM370 Then
+                firstline = 7
+                linesPerPage = 66
+                StartLine = 2
+            End If
 
-        ' Declare lineHeight for later use
-        Dim lineHeight As Double
+            ' Define margins (1/2 inch for left and right margins)
+            Dim leftMargin As Double = 30 ' 1/2 inch margin
+            Dim rightMargin As Double = 30 ' 1/2 inch margin
+            Dim availableWidth As Double ' Width for text after margins
+            Dim fontSize As Double
+            Dim font As XFont = Nothing ' Font will be initialized later
+            Dim page As PdfPage = Nothing ' Page will be initialized later
+            Dim gfx As XGraphics = Nothing ' gfx will be initialized later
+            Dim y As Double = firstline ' Starting Y position for text
+            Dim currentLine As Integer = StartLine
 
-        ' Function to initialize a new page and reset layout
-        Dim InitializeNewPage = Sub()
-                                    ' Initialize the page
-                                    page = doc.AddPage()
-                                    page.Orientation = PdfSharp.PageOrientation.Landscape
+            ' Declare lineHeight for later use
+            Dim lineHeight As Double
 
-                                    ' Initialize graphics context for this page
-                                    gfx = XGraphics.FromPdfPage(page)
+            ' Function to initialize a new page and reset layout
+            Dim InitializeNewPage = Sub()
+                                        ' Initialize the page
+                                        page = doc.AddPage()
+                                        page.Orientation = PdfSharp.PageOrientation.Landscape
 
-                                    ' Draw background image to cover entire page
-                                    gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
-                                    'Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
-                                    'Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
-                                    'DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
-                                    ' Recalculate available width for text after margins
-                                    availableWidth = page.Width.Point - leftMargin - rightMargin
+                                        ' Initialize graphics context for this page
+                                        gfx = XGraphics.FromPdfPage(page)
 
-                                    ' Initialize font with a temporary size
-                                    font = New XFont("Chainprinter", 12)
+                                        ' Draw background image to cover entire page
+                                        gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                        'Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
+                                        'Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
+                                        'DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
+                                        ' Recalculate available width for text after margins
+                                        availableWidth = page.Width.Point - leftMargin - rightMargin
 
-                                    ' Calculate font size based on available width to fit 132 characters per line
-                                    ' Measure the width of a single character (e.g., "W") at font size to estimate scaling
-                                    Dim charWidth As Double = gfx.MeasureString("W", font).Width
-                                    fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                        ' Initialize font with a temporary size
+                                        font = New XFont("Chainprinter", 12)
 
-                                    ' Update font with the correct size
-                                    font = New XFont("Chainprinter", fontSize)
+                                        ' Calculate font size based on available width to fit 132 characters per line
+                                        ' Measure the width of a single character (e.g., "W") at font size to estimate scaling
+                                        Dim charWidth As Double = gfx.MeasureString("W", font).Width
+                                        fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
 
-                                    ' Calculate line height based on 66 lines per page
-                                    Dim newHeight As Double = page.Height.Point / 66
-                                    lineHeight = (newHeight)
+                                        ' Update font with the correct size
+                                        font = New XFont("Chainprinter", fontSize)
 
-                                    ' Reset text starting position
-                                    y = firstline
-                                    currentLine = StartLine
-                                End Sub
+                                        ' Calculate line height based on 66 lines per page
+                                        Dim newHeight As Double = page.Height.Point / 66
+                                        lineHeight = (newHeight)
 
-        ' Initialize the first page
-        InitializeNewPage()
+                                        ' Reset text starting position
+                                        y = firstline
+                                        currentLine = StartLine
+                                    End Sub
 
-        ' Regex to remove any non-printable characters, and explicitly handle LF (line feed)
-        Dim regex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C\x0D\u00A0]", RegexOptions.Compiled)
-        Dim mperegex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C]", RegexOptions.Compiled)
-        If outList(0).Trim = "" Then
-            outList.RemoveAt(0)       ' In case it starts out with a LF/CR or otherwise empty line.
-        End If
-        ' Process each line from the output list
+            ' Initialize the first page
+            InitializeNewPage()
 
-        For Each line As String In outList
-            Try
-                ' Remove non-printable characters (same as before)
-                If OS <> OSType.OS_RSTS Then
-                    line = regex.Replace(line, String.Empty) ' Remove non-printable characters
-                    ' Replace empty lines with a space
-                    line = If(String.IsNullOrEmpty(line), " ", line)
-                End If
+            ' Regex to remove any non-printable characters, and explicitly handle LF (line feed)
+            Dim regex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C\x0D\u00A0]", RegexOptions.Compiled)
+            Dim mperegex As New System.Text.RegularExpressions.Regex("[^\x20-\x7E\x0C]", RegexOptions.Compiled)
+            If outList(0).Trim = "" Then
+                outList.RemoveAt(0)       ' In case it starts out with a LF/CR or otherwise empty line.
+            End If
+            ' Process each line from the output list
 
-                ' Handle Form Feed (FF) and create a new page if necessary
-                If line.StartsWith(vbFormFeed) Then
-                    InitializeNewPage()
-                End If
-
-                ' Create a new page if current page is full
-                If currentLine >= linesPerPage Then
-                    InitializeNewPage()
-                End If
-
-                ' Remove FF characters before drawing
-                If line <> vbFormFeed Then
-                    'If the line is just a FF then don't print it, we just created a new page
-
-                    ' Check if the line contains embedded CRs (not at the end)
-                    If line.Contains(Chr(13)) AndAlso Not line.EndsWith(Chr(13)) Then
-                        ' Split the line by CR characters (we will handle the overstrike behavior here)
-                        Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
-
-                        ' Track the current starting position for drawing
-                        Dim currentX As Double = leftMargin
-
-                        ' Iterate through the segments
-                        For Each segment As String In segments
-                            If Not String.IsNullOrEmpty(segment) Then
-                                ' Draw the base text segment at the starting position
-                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-
-                                ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
-                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                            End If
-                        Next
-                    Else
-                        ' If there are no CRs, just print the line normally
-                        gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+            For Each line As String In outList
+                Try
+                    ' Remove non-printable characters (same as before)
+                    If OS <> OSType.OS_RSTS Then
+                        line = regex.Replace(line, String.Empty) ' Remove non-printable characters
+                        ' Replace empty lines with a space
+                        line = If(String.IsNullOrEmpty(line), " ", line)
                     End If
 
-                    ' Move down for the next line
-                    y += lineHeight
-                    currentLine += 1
-                End If
+                    ' Handle Form Feed (FF) and create a new page if necessary
+                    If line.StartsWith(vbFormFeed) Then
+                        InitializeNewPage()
+                    End If
+
+                    ' Create a new page if current page is full
+                    If currentLine >= linesPerPage Then
+                        InitializeNewPage()
+                    End If
+
+                    ' Remove FF characters before drawing
+                    If line <> vbFormFeed Then
+                        'If the line is just a FF then don't print it, we just created a new page
+
+                        ' Check if the line contains embedded CRs (not at the end)
+                        If line.Contains(Chr(13)) AndAlso Not line.EndsWith(Chr(13)) Then
+                            ' Split the line by CR characters (we will handle the overstrike behavior here)
+                            Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
+
+                            ' Track the current starting position for drawing
+                            Dim currentX As Double = leftMargin
+
+                            ' Iterate through the segments
+                            For Each segment As String In segments
+                                If Not String.IsNullOrEmpty(segment) Then
+                                    ' Draw the base text segment at the starting position
+                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+
+                                    ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
+                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                End If
+                            Next
+                        Else
+                            ' If there are no CRs, just print the line normally
+                            gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                        End If
+
+                        ' Move down for the next line
+                        y += lineHeight
+                        currentLine += 1
+                    End If
 
 
-            Catch ex As Exception
-                ' Handle errors (e.g., invalid characters or drawing issues)
-            End Try
-        Next
+                Catch ex As Exception
+                    ' Handle errors (e.g., invalid characters or drawing issues)
+                End Try
+            Next
 
-        ' Save the document and return the output file
-        Dim outputFile As String = filename
-        Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.")
-        doc.Save(outputFile)
-        doc.Close()
+            ' Save the document and return the output file
+            Dim outputFile As String = filename
+            Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.")
+            doc.Save(outputFile)
+            doc.Close()
 
-        ' Ensure we properly end the function
-        Return outputFile
+            ' Ensure we properly end the function
+            Return outputFile
+        Catch ex As Exception
+            Program.Log($"Error: {ex.Message}")
+        End Try
+        Return "" ' Just to quiet down the IDE
+
     End Function
 
     ' EXPERIMENTAL
@@ -676,10 +721,4 @@ Public Class devs
             gfx.DrawString((i + 1).ToString(), font, New XSolidBrush(dark), New XPoint(pageWidth - 40, 72 + (i * 9)))
         Next
     End Sub
-
-
-
-
-
-
 End Class
