@@ -14,7 +14,7 @@ printers, and seems to perform reasonably well when several printers are running
 The last static linked (supposedly) linux versions for x64 and raspberry pi (arm)
 can be found at this link.
 
-https://drive.google.com/drive/folders/13juH_mvTz5u_BkZ0AqulOF6_oOGp93a6?usp=sharing
+[Click here to access the folder on my Google Drive](https://drive.google.com/drive/folders/1-aCWr1JMhf7zmtW9EJ3QdICv3WfYTBh0?usp=sharing)
 
 
 There's three projects in this repo.  
