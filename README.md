@@ -32,8 +32,10 @@ executable files directory.  This will be configurable in the future.
 
                           VM/370 Community Edition, hercules 1403 sockdev
 
-                          MVS3.8J (TK4-, TK5- MVSCE etc) are in progress.  Not yet completed
-                             print jobs go through, but job information is not pulled.
+                          MVS3.8J (TK4-, TK5- MVSCE etc)
+                                MVS 3.8J now works, and collects job information
+                                Thanks to Rudi for helping me out with testing the
+                                overstrike capabilities.
 
 device_config is a console device configuration utility (working).
 
