@@ -9,7 +9,11 @@ https://drive.google.com/drive/folders/13juH_mvTz5u_BkZ0AqulOF6_oOGp93a6?usp=sha
 
 This is a work in progress, hence the Private repo.
 
-There's three projects in this repo.  ProjectPrinter is the server code.  
-device_config is a console device configuration utility (it's non functional right now)
-ProjectPrinterManager is a WINDOWS ONLY GUI application that is also a work in progress.
+There's three projects in this repo.  
+
+ProjectPrinter is the server code.
+
+device_config is a console device configuration utility (working).
+
+ProjectPrinterManager is a WINDOWS ONLY GUI application (not working).
 
