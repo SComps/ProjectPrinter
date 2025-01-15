@@ -25,7 +25,7 @@ Module dev_console
         If OperatingSystem.IsLinux Then
             Console.WriteLine("Running under Linux.")
         Else
-            Console.SetWindowSize(132, 32)
+            Console.SetWindowSize(80, 25)
         End If
 
         max_Rows = Console.WindowHeight
@@ -57,10 +57,19 @@ Module dev_console
             Select Case sel
                 Case "*CC*"
 
+                Case "SAVE"
+                    SaveDevices()
+                Case "ADD"
+                    devList.Add(New devs)
+                    EditItem(devList.Count)
                 Case "EXIT"
-                    Console.ResetColor()
-                    Console.Clear()
-                    End
+                    If OkToQuit() Then
+                        Console.ResetColor()
+                        Console.Clear()
+                        End
+                    Else
+                        Exit Select
+                    End If
                 Case Else
                     Dim itemID As Integer = Val(sel)
                     Select Case itemID
@@ -74,10 +83,22 @@ Module dev_console
                                 EditItem(itemID)
                             End If
                     End Select
-
             End Select
         Loop
     End Sub
+
+    Private Function OkToQuit() As Boolean
+        Console.BackgroundColor = ConsoleColor.Black
+        Console.ForegroundColor = ConsoleColor.White
+        Console.Clear()
+        Console.Write("Unsaved changes may be lost.  Are you sure? [Y/n] ==> ")
+        Dim opt As String = Console.ReadLine
+        If opt.ToUpper.StartsWith("Y") Then
+            Return True
+        Else
+            Return False
+        End If
+    End Function
 
     Private Sub EditItem(item As Integer)
         ' First reduce item by 1 (the list is 0 based)
@@ -93,6 +114,7 @@ Module dev_console
         Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370", 1, max_Rows - 3, ConsoleColor.White)
         Say("CONN TYPE: Always 0 (sockdev)", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
+        Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
         Say("       DEVICE NAME:", 5, 5, ConsoleColor.Cyan)
         Say("DEVICE DESCRIPTION:", 5, 7, ConsoleColor.Cyan)
         Say("       DEVICE TYPE:", 5, 9, ConsoleColor.Cyan)
@@ -119,6 +141,33 @@ Module dev_console
         Dim myPDF As String = GetString(thisDev.PDF, 26, 19, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Say("Save? (Y/n) ==> ", 1, max_Rows - 4, ConsoleColor.Green)
         Dim opt As String = Console.ReadLine
+        If opt.ToUpper.StartsWith("Y") Then
+            ' move what's been entered into the temporary object
+            thisDev.DevName = myName
+            thisDev.DevDescription = myDesc
+            thisDev.DevType = myType
+            thisDev.ConnType = myConn
+            thisDev.OS = Val(myOS)
+            thisDev.DevDest = myDest
+            Select Case myAuto.ToUpper.Trim
+                Case "TRUE", "YES", "1"
+                    Stop
+                    thisDev.Auto = True
+                Case "FALSE", "NO", "0", "-1"
+                    thisDev.Auto = False
+                Case Else
+                    thisDev.Auto = False    ' Default to false.
+            End Select
+            Select Case myPDF.ToUpper
+                Case "TRUE", "YES", "1"
+                    thisDev.PDF = True
+                Case "FALSE", "NO", "0", "-1"
+                    thisDev.PDF = False
+                Case Else
+                    thisDev.PDF = False    ' Default to false
+            End Select
+            devList(item) = thisDev
+        End If
     End Sub
 
     Function CenterString(input As String, totalWidth As Integer) As String
@@ -128,6 +177,7 @@ Module dev_console
     Private Function GetString(value As String, col As Integer, line As Integer, len As Integer, dColor As Integer, Optional fcolor As Integer = -1, Optional BColor As Integer = -1) As String
         Dim curfColor As ConsoleColor = Console.ForegroundColor
         Dim curbColor As ConsoleColor = Console.BackgroundColor
+        If value Is Nothing Then value = ""
         If fcolor > -1 Then
             ForegroundColor = fcolor
         End If
@@ -198,8 +248,11 @@ Module dev_console
             devLine = "      DEVICE          NAME                          OS  CONN  AUTO  PDF"
         End If
         Console.Clear()
+        Console.SetCursorPosition(0, 0)
         Console.Write(bannerLine)
-        Console.WriteLine($" PROJECT PRINTER DEVICE CONFIGURATION   {devList.Count} devices loaded.")
+        Console.SetCursorPosition(0, 1)
+        Console.WriteLine($" PROJECT PRINTER DEVICE CONFIGURATION {devList.Count} devices.")
+        Console.SetCursorPosition(0, 2)
         Console.Write(bannerLine)
         Console.SetCursorPosition(1, 4)
         Console.WriteLine("COMMAND ==> ")
