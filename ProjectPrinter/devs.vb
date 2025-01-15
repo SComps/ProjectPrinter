@@ -176,7 +176,9 @@ Public Class devs
             Select Case c
                 Case vbCr
                     'Pass it into the string as printable data if it's VM370
+                    'Go figure, MVS apparently uses overstrikes too.  Crazy!
                     If OS = OSType.OS_VM370 Then currentLine.Append(c)
+                    If OS = OSType.OS_MVS38J Then currentLine.Append(c)
                 Case vbLf
                     ' New Line, return to 'home' position implied.
                     If currentLine.ToString.Trim.Length > 0 Then
