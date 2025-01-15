@@ -2,7 +2,7 @@
 
 A .NET 9.0 project written in Visual Basic .NET similar to Virtual1403.
 
-This project attempt to reasonably emulate a line printer from mainframes and mini computers
+This project attempta to reasonably emulate a line printer from mainframes and mini computers
 of our great past.  From the big boy 1403's on IBM mainframes, to the workhorses on DEC's
 VAX and ALPHA systems, the printers that cranked along on DEC's PDP-11's running RSTS/E,
 and of course the printers servicing the venerable HP 3000 running MPE.  The reams of
