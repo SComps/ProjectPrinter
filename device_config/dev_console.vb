@@ -91,7 +91,7 @@ Module dev_console
         Console.BackgroundColor = ConsoleColor.Black
         Console.ForegroundColor = ConsoleColor.White
         Console.Clear()
-        Console.Write("Hey Rudi!!!  Baldurs Gate forever!")
+        Console.WriteLine("Hey Rudi!!!  Baldurs Gate forever!")
         Console.Write("Unsaved changes may be lost.  Are you sure? [Y/n] ==> ")
         Dim opt As String = Console.ReadLine
         If opt.ToUpper.StartsWith("Y") Then
