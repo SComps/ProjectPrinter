@@ -4,14 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>device_config</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.1.15.77</AssemblyVersion>
-    <FileVersion>2025.1.15.77</FileVersion>
+    <AssemblyVersion>2025.1.15.78</AssemblyVersion>
+    <FileVersion>2025.1.15.78</FileVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Update="devices.cfg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
 </Project>

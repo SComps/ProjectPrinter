@@ -16,9 +16,6 @@
     <None Update="chainprinter.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="devices.cfg">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="dotmatrix.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
