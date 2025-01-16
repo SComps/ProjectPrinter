@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ProjectPrinter": {
+      "commandName": "Project",
+      "commandLineArgs": "logType:none cmdPort:17000"
+    }
+  }
+}

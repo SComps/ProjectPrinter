@@ -42,7 +42,7 @@ Module Program
     Public DevList As New List(Of devs)
     Public StageList As New List(Of devs)
     Public GlobalParms As New List(Of parmStruct)
-    Public configFile As String = ""
+    Public configFile As String = "devices.cfg"
     Public cmdPort As Integer = 0
     Public logType As String = "default"
     Public RemoteCommand As TcpListener
@@ -61,9 +61,10 @@ Module Program
         Else
             'Process the parameters
             ProcessParms(GlobalParms)
+
         End If
-        If Not File.Exists("devices.cfg") Then
-            Dim fs As FileStream = File.Open("devices.cfg", FileMode.Create)
+        If Not File.Exists(configFile) Then
+            Dim fs As FileStream = File.Open(configFile, FileMode.Create)
             fs.Close()
         End If
 
@@ -71,8 +72,10 @@ Module Program
         If cmdPort = "0" Then
             Log("Not Listening for a remote controller.")
         Else
+
             Dim listenerTask = StartTcpListenerAsync()
         End If
+
         LoadDevices()
         statTimer.Enabled = True
         While Running
@@ -107,6 +110,10 @@ Module Program
             Dim thisParm As String = ""
             Dim thisValue As String = ""
             valuePair = p.Split(":", StringSplitOptions.TrimEntries)
+            If valuePair.Count <> 2 Then
+                Console.WriteLine($"*** Cannot parse option `{p}`. Terminating.")
+                End
+            End If
             If valuePair(0).Trim <> "" Then
                 thisParm = valuePair(0)
             End If
@@ -130,10 +137,11 @@ Module Program
     End Function
 
     Sub ProcessParms(parmList As List(Of parmStruct))
-        Dim newCfg As String = ""
-        Dim newPort As String = ""
-        Dim newLogType As String = ""
+        Dim newCfg As String = "devices.cfg"        ' Set up some sane defaults.
+        Dim newPort As String = "16000"
+        Dim newLogType As String = "default"
         For Each p As parmStruct In parmList
+
             Select Case p.arg
                 Case "config"
                     newCfg = p.value
@@ -144,6 +152,10 @@ Module Program
                 Case "logType"
                     newLogType = p.value
                     Log(String.Format(parmDefined, p.arg, p.value), False)
+                    If p.value = "none" Then
+                        Console.WriteLine("PROJECT PRINTER==>Logging disabled.")
+                        Console.WriteLine("Keep this terminal open.  This application is not a daemon.")
+                    End If
                 Case Else
                     Log(String.Format(parmError, p.arg, p.value), True)
             End Select
@@ -151,6 +163,7 @@ Module Program
         configFile = newCfg
         cmdPort = Val(newPort)
         logType = newLogType
+        'Stop
     End Sub
 
     Sub Log(errMsg As String, Optional term As Boolean = False)
@@ -166,6 +179,7 @@ Module Program
                 ' Requested silent operation
             Case Else
                 ' Logging to the defined filename
+                Console.WriteLine($"Logging to file {logType}")
                 Dim logExists As Boolean = File.Exists(logType)
                 Dim sw As New StreamWriter(logType, True)
                 sw.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
@@ -195,8 +209,17 @@ Module Program
         Log("Remote management clearing device list.")
         ' Reload from the file
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamReader("devices.cfg")
-        DevList = serializer.Deserialize(xmlStream)
+        Dim xmlStream As New StreamReader(configFile)
+        Try
+            DevList = serializer.Deserialize(xmlStream)
+        Catch ex As Exception
+            Console.WriteLine($"ERR: {ex.Message}")
+            Console.WriteLine("ERR: You have no devices defined or the config file specified is corrupt.")
+            Console.WriteLine("INF: Use the device_config tool to establish your devices.")
+            Console.WriteLine($"USAGE: device_config {configFile}")
+            xmlStream.Close()
+            End
+        End Try
         xmlStream.Close()
         Log("Remote management loading device list from configuration.")
         Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
@@ -209,7 +232,7 @@ Module Program
     Sub SaveDevices()
         ' Serialize the device list to XML
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamWriter("devices.cfg")
+        Dim xmlStream As New StreamWriter(configFile)
         Using sw As New StringWriter()
             serializer.Serialize(sw, DevList)
             xmlStream.Write(sw.ToString())
@@ -395,7 +418,7 @@ Module Program
         ' Serialize the device list to XML
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
         Dim outString As String = ""
-        'Dim xmlStream As New StreamWriter("devices.cfg")
+        'Dim xmlStream As New StreamWriter()
         Using sw As New StringWriter()
             serializer.Serialize(sw, DevList)
             outString = sw.ToString()

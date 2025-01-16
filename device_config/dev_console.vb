@@ -20,7 +20,10 @@ Module dev_console
     Private max_Cols As Integer = 80
 
     Private ErrMsg As String = ""
+
+    Private configFile As String = "devices.cfg"
     Sub Main(args As String())
+        If args.Count > 0 Then configFile = args(0)   ' If it's not specified, devices.cfg it is.
         AddHandler Console.CancelKeyPress, AddressOf Console_CancelKeyPress
         If OperatingSystem.IsLinux Then
             Console.WriteLine("Running under Linux.")
@@ -41,8 +44,8 @@ Module dev_console
         BackgroundColor = ConsoleColor.Black
         ForegroundColor = ConsoleColor.White
         Console.Clear()
-        If Not File.Exists("devices.cfg") Then
-            Dim fs As FileStream = File.Open("devices.cfg", FileMode.Create)
+        If Not File.Exists(configFile) Then
+            Dim fs As FileStream = File.Open(configFile, FileMode.Create)
             fs.Close()
         End If
         devList.Clear()
@@ -217,7 +220,7 @@ Module dev_console
         ' Deserialize all devices.
         Dim newList As New List(Of devs)
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamReader("devices.cfg")
+        Dim xmlStream As New StreamReader(configFile)
         Try
             newList = serializer.Deserialize(xmlStream)
         Catch ex As Exception
@@ -231,7 +234,7 @@ Module dev_console
     Sub SaveDevices()
         ' Serialize the device list to XML
         Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamWriter("devices.cfg")
+        Dim xmlStream As New StreamWriter(configFile)
         Using sw As New StringWriter()
             serializer.Serialize(sw, devList)
             xmlStream.Write(sw.ToString())
@@ -252,7 +255,7 @@ Module dev_console
         Console.SetCursorPosition(0, 0)
         Console.Write(bannerLine)
         Console.SetCursorPosition(0, 1)
-        Console.WriteLine($" PROJECT PRINTER DEVICE CONFIGURATION {devList.Count} devices.")
+        Console.WriteLine($" PROJECT PRINTER DEVICE CONFIGURATION [{configFile}] {devList.Count} devices.")
         Console.SetCursorPosition(0, 2)
         Console.Write(bannerLine)
         Console.SetCursorPosition(1, 4)
