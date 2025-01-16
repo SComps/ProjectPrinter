@@ -42,6 +42,6 @@ device_config is a console device configuration utility (working).
 ProjectPrinterManager is a WINDOWS ONLY GUI application (not working).
 
 This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
-polished virtual printer with a lot more capability than that, check it out.  You'll love it.  I love it
+polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
 so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
 racingmars definitely deserves that credit.  
