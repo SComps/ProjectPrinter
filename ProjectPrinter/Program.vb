@@ -8,6 +8,7 @@ Imports System.Runtime
 Imports System.Text
 Imports System.Text.Json
 Imports System.Xml.Serialization
+Imports System.ComponentModel.Design
 
 Public Class parmStruct
     Public arg As String
@@ -98,6 +99,11 @@ Module Program
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
         ' each arg is a string in the format of arg:value ie: config:appconfig.cfg
+        If args.Count > 0 Then
+            If args(0).ToUpper = "HELP" Then
+                DoHelp()
+            End If
+        End If
         Dim argList As New List(Of parmStruct)
         Dim ParmsProvided As Integer = 0
         If args.Length = 0 Then
@@ -255,6 +261,24 @@ Module Program
         out = out & "END OF DEVICE LIST" & vbCrLf & vbCrLf
         Return out
     End Function
+
+    Private Sub DoHelp()
+        Console.WriteLine("Command line options:")
+        Console.WriteLine("")
+        Console.WriteLine("arguments take the form key:value")
+        Console.WriteLine("CASE IS SENSITIVE IN BOTH KEY AND VALUE!")
+        Console.WriteLine("")
+        Console.WriteLine("config defines the configuration file:  config:devices.cfg [DEFAULT]")
+        Console.WriteLine("cmdPort defines the listening port for management: cmdPort:16000 [DEFAULT]")
+        Console.WriteLine("logType defines logging options as follows")
+        Console.WriteLine("      default: Logs to the screen or stdout [DEFAULT]")
+        Console.WriteLine("      none: No logging once application is initialized.")
+        Console.WriteLine("   any valid filename: example logType:logfile.log")
+        Console.WriteLine("")
+        Console.WriteLine("if no options are present, defaults are selected automatically.")
+        Console.WriteLine("")
+        End
+    End Sub
 
 
     ' ==============================================
