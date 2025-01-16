@@ -57,36 +57,67 @@ Module dev_console
             sel = GetCmd()
             If sel Is Nothing Then sel = "*CC*"
             sel = sel.ToUpper.Trim
-            Select Case sel
-                Case "*CC*"
-
-                Case "SAVE"
-                    SaveDevices()
-                Case "ADD"
-                    devList.Add(New devs)
-                    EditItem(devList.Count)
-                Case "EXIT"
-                    If OkToQuit() Then
-                        Console.ResetColor()
-                        Console.Clear()
-                        End
-                    Else
-                        Exit Select
+            ' DELETE is a multi part command and can't be used in SELECT
+            If sel.StartsWith("DELETE") Then
+                Dim parts As String() = sel.Split(" ")
+                Dim cancelDelete As Boolean = False
+                If parts.Count <> 2 Then
+                    SetError("Invalid command structure.")
+                Else
+                    If Val(parts(1)) = 0 Then
+                        SetError("Invalid entry ID number")
+                        cancelDelete = True
                     End If
-                Case Else
-                    Dim itemID As Integer = Val(sel)
-                    Select Case itemID
-                        Case 0
-                            SetError($"ERR: Invalid Command {sel}")
-                        Case Else
-                            If itemID > devList.Count Then
-                                SetError($"ERR: Device {itemID} not listed.")
-                            Else
-                                ' Send the itemID to editItem
-                                EditItem(itemID)
-                            End If
-                    End Select
-            End Select
+                    If Val(parts(1)) > devList.Count Then
+                        SetError($"Item {parts(1)} does not exist.")
+                        cancelDelete = True
+                    End If
+                    If Not cancelDelete Then
+                        Console.SetCursorPosition(1, 5)
+                        Console.ForegroundColor = ConsoleColor.Red
+                        Console.Write($"Press Y to confirm deletion of item {parts(1)} ===> ")
+                        ConsoleResetColor()
+                        Dim resp As String = Console.ReadKey.KeyChar
+                        If resp.ToUpper <> "Y" Then
+                            SetError($"Cancelled deletion of item {parts(1)}.")
+                            cancelDelete = True
+                        Else
+                            devList.RemoveAt(Val(parts(1) - 1)) ' remember 0 based
+                        End If
+                    End If
+                End If
+            Else
+                Select Case sel
+                    Case "*CC*"
+
+                    Case "SAVE"
+                        SaveDevices()
+                    Case "ADD"
+                        devList.Add(New devs)
+                        EditItem(devList.Count)
+                    Case "EXIT"
+                        If OkToQuit() Then
+                            Console.ResetColor()
+                            Console.Clear()
+                            End
+                        Else
+                            Exit Select
+                        End If
+                    Case Else
+                        Dim itemID As Integer = Val(sel)
+                        Select Case itemID
+                            Case 0
+                                SetError($"ERR: Invalid Command {sel}")
+                            Case Else
+                                If itemID > devList.Count Then
+                                    SetError($"ERR: Device {itemID} not listed.")
+                                Else
+                                    ' Send the itemID to editItem
+                                    EditItem(itemID)
+                                End If
+                        End Select
+                End Select
+            End If
         Loop
     End Sub
 
@@ -310,7 +341,7 @@ Module dev_console
         Console.ForegroundColor = ConsoleColor.White
         Console.WriteLine("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370")
         Console.WriteLine(" CONN: (0) SOCKDEV (others not implemented)")
-        Console.Write(" Command: ADD, SAVE, EXIT or Item # to EDIT")
+        Console.Write(" Command: ADD, SAVE, EXIT or Item # to EDIT, or DELETE #")
 
     End Sub
 

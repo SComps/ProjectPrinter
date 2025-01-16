@@ -205,6 +205,11 @@ Public Class devs
             lines.Add(currentLine.ToString())
         End If
 
+        ' Check to see if it completes with a FF.  (We do this anyway)
+        If lines(lines.Count - 1) = vbFormFeed Then
+            lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
+        End If
+
         ' Process the complete lines (document)
         If lines.Any() Then
             currentDocument.AddRange(lines)
