@@ -1,18 +1,8 @@
-﻿Imports System.ComponentModel
-Imports System.ComponentModel.Design
-Imports System.Data.Common
-Imports System.IO
-Imports System.Net.Http
+﻿Imports System.IO
 Imports System.Net.Sockets
-Imports System.Reflection.Metadata
-Imports System.Runtime
-Imports System.Runtime.CompilerServices
-Imports System.Runtime.Serialization
-Imports System.Runtime.Serialization.Json
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
-Imports PdfSharp.Charting
 Imports PdfSharp.Drawing
 Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
@@ -495,7 +485,7 @@ Public Class devs
             End If
 
             If OS = OSType.OS_MPE Then         '
-                firstline = 27
+                firstline = 26
                 linesPerPage = 66
                 StartLine = 3
             End If

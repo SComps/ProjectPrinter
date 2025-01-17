@@ -1,5 +1,5 @@
-﻿Imports PdfSharp.Fonts
-Imports System.IO
+﻿Imports System.IO
+Imports PdfSharp.Fonts
 
 Public Class ChainprinterFontResolver
     Implements IFontResolver

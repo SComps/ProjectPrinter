@@ -1,15 +1,5 @@
-Imports System
-Imports System.ComponentModel
 Imports System.Console
-Imports System.Data
 Imports System.IO
-Imports System.Reflection.Metadata.Ecma335
-Imports System.Runtime.InteropServices
-Imports System.Runtime.InteropServices.Marshalling
-Imports System.Runtime.Versioning
-Imports System.Security.AccessControl
-Imports System.Threading
-Imports System.Xml
 Imports System.Xml.Serialization
 
 Module dev_console
@@ -150,30 +140,36 @@ Module dev_console
         Say("CONN TYPE: Always 0 (sockdev)", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
         Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
-        Say("       DEVICE NAME:", 5, 5, ConsoleColor.Cyan)
-        Say("DEVICE DESCRIPTION:", 5, 7, ConsoleColor.Cyan)
-        Say("       DEVICE TYPE:", 5, 9, ConsoleColor.Cyan)
-        Say("   CONNECTION TYPE:", 5, 11, ConsoleColor.Cyan)
-        Say("  OPERATING SYSTEM:", 5, 13, ConsoleColor.Cyan)
-        Say("DEVICE DESTINATION:", 5, 15, ConsoleColor.Cyan)
-        Say("      AUTO CONNECT:", 5, 17, ConsoleColor.Cyan)
-        Say("        OUTPUT PDF:", 5, 19, ConsoleColor.Cyan)
-        Say(thisDev.DevName, 26, 5, ConsoleColor.Yellow)
-        Say(thisDev.DevDescription, 26, 7, ConsoleColor.Yellow)
-        Say(thisDev.DevType, 26, 9, ConsoleColor.Yellow)
-        Say(thisDev.ConnType, 26, 11, ConsoleColor.Yellow)
-        Say(thisDev.OS, 26, 13, ConsoleColor.Yellow)
-        Say(thisDev.DevDest, 26, 15, ConsoleColor.Yellow)
-        Say(thisDev.Auto, 26, 17, ConsoleColor.Yellow)
-        Say(thisDev.PDF, 26, 19, ConsoleColor.Yellow)
-        Dim myName As String = GetString(thisDev.DevName, 26, 5, 15, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myDesc As String = GetString(thisDev.DevDescription, 26, 7, 30, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myType As String = GetString(thisDev.DevType, 26, 9, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myConn As String = GetString(thisDev.ConnType, 26, 11, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myOS As String = GetString(thisDev.OS, 26, 13, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myDest As String = GetString(thisDev.DevDest, 26, 15, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myAuto As String = GetString(thisDev.Auto, 26, 17, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myPDF As String = GetString(thisDev.PDF, 26, 19, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Say("       DEVICE NAME:", 5, 4, ConsoleColor.Cyan)
+        Say("DEVICE DESCRIPTION:", 5, 6, ConsoleColor.Cyan)
+        Say("       DEVICE TYPE:", 5, 8, ConsoleColor.Cyan)
+        Say("   CONNECTION TYPE:", 5, 10, ConsoleColor.Cyan)
+        Say("  OPERATING SYSTEM:", 5, 12, ConsoleColor.Cyan)
+        Say("DEVICE DESTINATION:", 5, 14, ConsoleColor.Cyan)
+        Say("      AUTO CONNECT:", 5, 16, ConsoleColor.Cyan)
+        Say("        OUTPUT PDF:", 5, 18, ConsoleColor.Cyan)
+        Say("ORIENTATION:", 40, 18, ConsoleColor.Cyan)
+        Say("        OUTPUT DIR:", 5, 20, ConsoleColor.Cyan)
+        Say(thisDev.DevName, 26, 4, ConsoleColor.Yellow)
+        Say(thisDev.DevDescription, 26, 6, ConsoleColor.Yellow)
+        Say(thisDev.DevType, 26, 8, ConsoleColor.Yellow)
+        Say(thisDev.ConnType, 26, 10, ConsoleColor.Yellow)
+        Say(thisDev.OS, 26, 12, ConsoleColor.Yellow)
+        Say(thisDev.DevDest, 26, 14, ConsoleColor.Yellow)
+        Say(thisDev.Auto, 26, 16, ConsoleColor.Yellow)
+        Say(thisDev.PDF, 26, 18, ConsoleColor.Yellow)
+        Say(thisDev.Orientation, 54, 18, ConsoleColor.Yellow)
+        Say(thisDev.OutDest, 26, 20, ConsoleColor.Yellow)
+        Dim myName As String = GetString(thisDev.DevName, 26, 4, 15, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myDesc As String = GetString(thisDev.DevDescription, 26, 6, 30, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myType As String = GetString(thisDev.DevType, 26, 8, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myConn As String = GetString(thisDev.ConnType, 26, 10, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOS As String = GetString(thisDev.OS, 26, 12, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myDest As String = GetString(thisDev.DevDest, 26, 14, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myAuto As String = GetString(thisDev.Auto, 26, 16, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myPDF As String = GetString(thisDev.PDF, 26, 18, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOrient As String = GetString(thisDev.Orientation, 54, 18, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOutDest As String = GetString(thisDev.OutDest, 26, 20, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Say("Save? (Y/n) ==> ", 1, max_Rows - 4, ConsoleColor.Green)
         Dim opt As String = Console.ReadLine
         If opt.ToUpper.StartsWith("Y") Then
@@ -186,7 +182,7 @@ Module dev_console
             thisDev.DevDest = myDest
             Select Case myAuto.ToUpper.Trim
                 Case "TRUE", "YES", "1"
-                    Stop
+
                     thisDev.Auto = True
                 Case "FALSE", "NO", "0", "-1"
                     thisDev.Auto = False
@@ -201,6 +197,8 @@ Module dev_console
                 Case Else
                     thisDev.PDF = False    ' Default to false
             End Select
+            thisDev.OutDest = myOutDest
+            thisDev.Orientation = Val(myOrient)
             devList(item) = thisDev
         End If
     End Sub
@@ -378,7 +376,17 @@ Public Class devs
     Public OS As Integer
     Public Auto As Boolean
     Public PDF As Boolean
+    Public Orientation As Integer
+    Public OutDest As String
 End Class
+
+Public Enum ORIENT
+    LANDSCAPE
+    PORTRAIT
+    LANDSCAPE_NOBACK
+    PORTRAIT_NOBACK
+End Enum
+
 Public Enum DvType
     DT_PRINTER
     DT_READER

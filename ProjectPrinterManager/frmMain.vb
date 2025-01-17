@@ -1,15 +1,6 @@
-﻿Imports System.Threading
-Imports ProjectPrinterManager.My
-Imports Windows.Media.Protection.PlayReady
-
-Imports System.Text
+﻿Imports System.IO
 Imports System.Net.Sockets
-Imports System.IO
-Imports System.Xml.Serialization
-Imports System.Text.Json.Serialization
-Imports System.Data.SqlTypes
-Imports System.Net
-Imports Windows.Foundation.Metadata
+Imports ProjectPrinterManager.My
 
 Public Class frmMain
 
