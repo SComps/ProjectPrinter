@@ -1,6 +1,6 @@
 # ProjectPrinter
 
-# If you have run an older version of this application and are getting an error while generating output, re-run "device_config" to set up the additional orientation and output destination for each device.  Thos parameters have been added, but are NOT in your older device.cfg files.
+<b>If you have run an older version of this application and are getting an error while generating output, re-run "device_config" to set up the additional orientation and output destination for each device.  Thos parameters have been added, but are NOT in your older device.cfg files.</b>
 
 A .NET 9.0 project written in Visual Basic .NET similar to Virtual1403.
 
