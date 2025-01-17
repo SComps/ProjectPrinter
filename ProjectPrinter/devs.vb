@@ -285,8 +285,8 @@ Public Class devs
                 Program.Log($"[{DevName}] Created output directory {OutDest}")
                 FileIO.FileSystem.CreateDirectory(OutDest)
             End If
-            Dim filename As String = $"{OutDest}/{DevName}-{UserID}-{JobID}={JobName}_{JobNumber}.txt"
-            Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}={JobName}_{JobNumber}.pdf"
+            Dim filename As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.txt"
+            Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
 
 
             Dim writer As New StreamWriter(filename)
