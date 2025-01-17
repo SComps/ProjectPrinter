@@ -16,6 +16,8 @@ Public Class devs
     Public OS As Integer
     Public Auto As Boolean
     Public PDF As Boolean
+    Public Orientation As Integer
+    Public OutDest As String
     Private remoteHost As String
     Private remotePort As Integer
     Private client As New TcpClient
@@ -275,10 +277,17 @@ Public Class devs
             JobID = vals.JobID
             JobName = vals.JobName
             UserID = vals.User
-            Dim fnFmt As String = "PRT-{0}-{1}-{2}.txt"
-            Dim fnPdf As String = "PRT-{0}-{1}-{2}.pdf"
-            Dim filename As String = String.Format(fnFmt, UserID, JobID, JobName)
-            Dim pdfName As String = String.Format(fnPdf, UserID, JobID, JobName)
+            'Check if there's a trailing slash or backslash
+            If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
+                OutDest = OutDest.Substring(0, OutDest.Length - 1)
+            End If
+            If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
+                Program.Log($"[{DevName}] Created output directory {OutDest}")
+                FileIO.FileSystem.CreateDirectory(OutDest)
+            End If
+            Dim filename As String = $"{OutDest}/{DevName}-{UserID}-{JobID}={JobName}_{JobNumber}.txt"
+            Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}={JobName}_{JobNumber}.pdf"
+
 
             Dim writer As New StreamWriter(filename)
             For Each l As String In doc
