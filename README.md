@@ -45,3 +45,9 @@ This project is not meant to replace virtual1403, which is a fantastic project. 
 polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
 so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
 racingmars definitely deserves that credit.  
+
+A big thanks to the guys on the MPE Forever! Discord for checking things out and making some great suggestions!
+Devices are now configured to save the output in a user specified directory.
+
+Rudi has suggested and started work on a Portrait orientation for output as well.  I'm looking forward to seeing how that works out.  Stay tuned!
+
