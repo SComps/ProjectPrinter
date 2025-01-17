@@ -42,6 +42,7 @@ Module Program
     Public configFile As String = "devices.cfg"
     Public cmdPort As Integer = 0
     Public logType As String = "default"
+    Public pdfOrientation As String = "landscape"
     Public RemoteCommand As TcpListener
 
     Public Running As Boolean = True
@@ -142,6 +143,7 @@ Module Program
         Dim newCfg As String = "devices.cfg"        ' Set up some sane defaults.
         Dim newPort As String = "16000"
         Dim newLogType As String = "default"
+        Dim newPDFOrientation As String = "landscape"
         For Each p As parmStruct In parmList
 
             Select Case p.arg
@@ -158,6 +160,9 @@ Module Program
                         Console.WriteLine("PROJECT PRINTER==>Logging disabled.")
                         Console.WriteLine("Keep this terminal open.  This application is not a daemon.")
                     End If
+                Case "pdfOrientation"
+                    newPDFOrientation = p.value
+                    Log(String.Format(parmDefined, p.arg, p.value), False)
                 Case Else
                     Log(String.Format(parmError, p.arg, p.value), True)
             End Select
@@ -165,6 +170,7 @@ Module Program
         configFile = newCfg
         cmdPort = Val(newPort)
         logType = newLogType
+        pdfOrientation = newPDFOrientation
         'Stop
     End Sub
 

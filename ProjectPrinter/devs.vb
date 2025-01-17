@@ -478,7 +478,7 @@ Public Class devs
             doc.Info.Title = title
 
             ' Initialize background image (greenbar.jpg) to cover entire page
-            Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
+            Dim bkgrd As XImage = XImage.FromFile("greenbar-portrait.jpg")
 
             If OS = OSType.OS_MVS38J Then
                 Program.Log($"Setting page for MVS 3.8J")
@@ -529,7 +529,11 @@ Public Class devs
             Dim InitializeNewPage = Sub()
                                         ' Initialize the page
                                         page = doc.AddPage()
-                                        page.Orientation = PdfSharp.PageOrientation.Landscape
+                                        If pdfOrientation <> "portrait"
+                                            page.Orientation = PdfSharp.PageOrientation.Landscape
+                                        Else
+                                            page.Orientation = PdfSharp.PageOrientation.Portrait
+                                        End If
 
                                         ' Initialize graphics context for this page
                                         gfx = XGraphics.FromPdfPage(page)
@@ -547,8 +551,12 @@ Public Class devs
 
                                         ' Calculate font size based on available width to fit 132 characters per line
                                         ' Measure the width of a single character (e.g., "W") at font size to estimate scaling
-                                        Dim charWidth As Double = gfx.MeasureString("W", font).Width
-                                        fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                        Dim charWidth As Double = gfx.MeasureString("W", font).width
+                                        If page.Orientation <> PdfSharp.PageOrientation.Portrait
+                                            fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                        Else
+                                            fontSize = availableWidth / (charWidth * 80) * 12 ' Scaling factor to fit 80 characters per line
+                                        End If
 
                                         ' Update font with the correct size
                                         font = New XFont("Chainprinter", fontSize)
