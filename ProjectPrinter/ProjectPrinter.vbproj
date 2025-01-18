@@ -7,6 +7,7 @@
     <AssemblyVersion>2025.1.18.490</AssemblyVersion>
     <FileVersion>2025.1.18.490</FileVersion>
 	  <PublishAot>true</PublishAot>
+	  <TrimMode>partial</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
