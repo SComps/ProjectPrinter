@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>device_config</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.1.18.110</AssemblyVersion>
-    <FileVersion>2025.1.18.110</FileVersion>
+    <AssemblyVersion>2025.1.18.113</AssemblyVersion>
+    <FileVersion>2025.1.18.113</FileVersion>
 	  <PublishAot>true</PublishAot>
   </PropertyGroup>
 
