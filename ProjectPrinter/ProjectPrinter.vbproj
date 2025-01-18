@@ -6,7 +6,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <AssemblyVersion>2025.1.18.484</AssemblyVersion>
     <FileVersion>2025.1.18.484</FileVersion>
-	<PublishAot>true</PublishAot>
   </PropertyGroup>
 
   <ItemGroup>
