@@ -7,7 +7,6 @@
     <AssemblyVersion>2025.1.18.484</AssemblyVersion>
     <FileVersion>2025.1.18.484</FileVersion>
 	<PublishAot>true</PublishAot>
-	<IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>
