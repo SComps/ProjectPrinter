@@ -9,7 +9,7 @@ Module dev_console
 
     Private ErrMsg As String = ""
 
-    Private configFile As String = "devices.cfg"
+    Private configFile As String = "devices.dat"
 
     Structure filedev
         Public DevName As String
@@ -261,13 +261,15 @@ Module dev_console
     Private Function LoadDevs() As List(Of devs)
         Dim newList As New List(Of devs)
         ' No  serializer stuff here
-        Using rdr As New StreamReader("device.dat")
+        Using rdr As New StreamReader(configFile)
+            'Is the file empty
+            If rdr.EndOfStream Then
+                Return newList
+            End If
             Do
                 Dim thisDev As String() = rdr.ReadLine().Split("||", StringSplitOptions.TrimEntries)
                 If thisDev.Count <> 10 Then
                     'Do nothing with the device, it's invalid... somebody mess with the file?
-                    WriteLine(thisDev.Count)
-                    Stop
                 Else
                     Dim nd As New devs
                     nd.DevName = thisDev(0)
@@ -295,7 +297,7 @@ Module dev_console
         Return newList
     End Function
     Sub SaveDevices()
-        Using writer As New StreamWriter("device.dat", append:=False)
+        Using writer As New StreamWriter(configFile, append:=False)
             For Each d As devs In devList
                 writer.WriteLine($"{d.DevName}||{d.DevDescription}||{d.DevType}||{d.ConnType}||{d.DevDest}||{d.OS}||{d.Auto}||" &
                     $"{d.PDF}||{d.Orientation}||{d.OutDest}")
