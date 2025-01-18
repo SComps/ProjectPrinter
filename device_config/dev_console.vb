@@ -100,7 +100,7 @@ Module dev_console
                         If OkToQuit() Then
                             Console.ResetColor()
                             Console.Clear()
-                            End
+                            Environment.Exit(0)
                         Else
                             Exit Select
                         End If
