@@ -68,6 +68,13 @@ Public Class devs
             Program.Log($"[{DevName}] Attempting to connect...")
             Await client.ConnectAsync(remoteHost, remotePort)
             Program.Log($"[{DevName}] Connection successful.")
+            If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
+                OutDest = OutDest.Substring(0, OutDest.Length - 1)
+            End If
+            If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
+                Program.Log($"[{DevName}] Created output directory {OutDest}")
+                FileIO.FileSystem.CreateDirectory(OutDest)
+            End If
             clientStream = client.GetStream()
             IsConnected = True
             ' Start receiving data
