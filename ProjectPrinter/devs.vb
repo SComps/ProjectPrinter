@@ -662,14 +662,15 @@ Public Class devs
                                 'Program.Log($"Segment count is {segments.Count}")
                                 ' Iterate through the segments
                                 Dim segIdx As Integer = 0
+                                Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
                                 For Each segment As String In segments
                                     'Program.Log($"{segment}")
                                     If Not String.IsNullOrEmpty(segment) Then
                                         ' Draw the base text segment at the starting position
                                         gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                                         If segIdx > 0 Then
-                                            ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
-                                            gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                            ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
+                                            gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                                         End If
                                         segIdx += 1
                                     End If
