@@ -4,7 +4,7 @@ jobs:
   build: 
     strategy:
       matrix:
-        platform: [ubuntu-latest, ubuntu-20.04, windows-latest, ubuntu-24.04-arm, ubuntu-22.04-arm]
+        platform: [ubuntu-latest, ubuntu-20.04, windows-latest, ubuntu-22.04-arm]
 
     name: Build
     runs-on: ${{ matrix.platform }}
