@@ -22,8 +22,11 @@ jobs:
         run: mkdir publish
       - name: Build
         run: dotnet build /p:EnableWindowsTargeting=true
-      - name: Publish Linux
+      - name: Publish Ubuntu Latest
         if: matrix.platform == 'ubuntu-latest'
+        run: dotnet publish --self-contained --runtime linux-x64 -c Release -o ./publish/
+      - name: Publish Ubuntu 20.04
+        if: matrix.platform == 'ubuntu-20.04'
         run: dotnet publish --self-contained --runtime linux-x64 -c Release -o ./publish/
       - name: Publish Windows
         if: matrix.platform == 'windows-latest'
