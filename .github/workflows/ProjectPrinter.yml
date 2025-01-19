@@ -26,7 +26,7 @@ jobs:
         run: dotnet build /p:EnableWindowsTargeting=true
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v1.0.0
+        uses: actions/upload-artifact@v4.0.0
         with:
           name: ProjectPrinter-{{matrix.platform}}
           path: |
