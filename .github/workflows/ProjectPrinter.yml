@@ -35,7 +35,7 @@ jobs:
         with:
           name: ProjectPrinter-${{ matrix.platform }}
           path: |
-            ProjectPrinter/**/bin/Release/net9.0/**/*
-            device_config/**/bin/Release/net9.0/**/*
+            ProjectPrinter/bin/Release/net9.0/*-*/*
+            device_config/bin/Release/net9.0/*-*/*
 
 
