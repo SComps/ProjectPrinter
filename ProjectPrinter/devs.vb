@@ -256,6 +256,14 @@ Public Class devs
     Private Sub ProcessDocument(doc As List(Of String))
         ' Before we do anything to this, lets dump a diagnostics file
         ' This is the document BEFORE we do anything to clean it up.
+        'Check if there's a trailing slash or backslash
+        If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
+            OutDest = OutDest.Substring(0, OutDest.Length - 1)
+        End If
+        If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
+            Program.Log($"[{DevName}] Created output directory {OutDest}")
+            FileIO.FileSystem.CreateDirectory(OutDest)
+        End If
         Dim DiagsFile As String = "DIAG-" & Now.Ticks.ToString & ".txt"
         Dim dwriter As New StreamWriter(DiagsFile)
         For Each l As String In doc
