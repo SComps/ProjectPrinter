@@ -10,27 +10,27 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
-        with:
-        submodules: 'recursive'
+          with:
+            submodules: 'recursive'
       - name: Setup .NET Core 3.1
         uses: actions/setup-dotnet@v1
-        with:
-        dotnet-version: 3.1.302
+          with:
+            dotnet-version: 3.1.302
 
       - name: Setup .NET 9
-        uses: actions/setup-dotnet@v1
-        with:
-        dotnet-version: 9
+          uses: actions/setup-dotnet@v1
+            with:
+              dotnet-version: 9
 
       - name: Build
         run: dotnet build /p:EnableWindowsTargeting=true
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v1.0.0
-        with:
-          name: ProjectPrinter-{{matrix.platform}}
-          path: |
-            ProjectPrinter/bin/Debug/net9.0/*
-            device_config/bin/Debug/net9.0/*
+          with:
+            name: ProjectPrinter-{{matrix.platform}}
+            path: |
+              ProjectPrinter/bin/Debug/net9.0/*
+              device_config/bin/Debug/net9.0/*
 
 
