@@ -45,7 +45,7 @@ Public Class devs
         thisHost = splitDev(0)
         thisPort = Val(splitDev(1))
         If thisHost.Trim <> "" Then
-            remoteHost = thisHost
+            remoteHost = thisHost.Trim
         Else
             Throw (New Exception("Destination does not contain a valid hostname"))
         End If
@@ -164,13 +164,24 @@ Public Class devs
         ' Split the data into lines and process it
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
-
-
+        Dim dataStream As String = OutDest & "/dataStream" & Now.Ticks.ToString & ".dst"
+        Dim swriter As New StreamWriter(dataStream)
+        'Stop
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
         ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
         For Each c As Char In documentData
+            Select Case c
+                Case vbCr
+                    swriter.Write("<cr>" & c)
+                Case vbLf
+                    swriter.Write("<lf>" & c)
+                Case vbFormFeed
+                    swriter.Write("<ff>" & c)
+                Case Else
+                    swriter.Write(c)
+            End Select
             Select Case c
                 Case vbCr
                     'Pass it into the string as printable data if it's VM370
@@ -181,7 +192,7 @@ Public Class devs
                 Case vbLf
                     ' New Line, return to 'home' position implied.
                     If currentLine.ToString.Trim.Length > 0 Then
-                        lines.Add(currentLine.ToString())
+                        lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
                         currentLine.Clear()
                     Else
                         lines.Add(" ")
@@ -189,7 +200,7 @@ Public Class devs
                     End If
                 Case vbFormFeed
                     'New Line, Form Feed, New Line
-                    lines.Add(currentLine.ToString())
+                    lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
                     lines.Add(c.ToString())
                     currentLine.Clear()
                 Case Else
@@ -198,10 +209,12 @@ Public Class devs
             End Select
 
         Next
+        swriter.Flush()
+        swriter.Close()
 
         ' Add any remaining line data
         If currentLine.Length > 0 Then
-            lines.Add(currentLine.ToString())
+            lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
         End If
 
         ' For some reason MPE ends jobs with <FF> then <CR>
@@ -241,6 +254,18 @@ Public Class devs
     End Sub
 
     Private Sub ProcessDocument(doc As List(Of String))
+        ' Before we do anything to this, lets dump a diagnostics file
+        ' This is the document BEFORE we do anything to clean it up.
+        Dim DiagsFile As String = "DIAG-" & Now.Ticks.ToString & ".txt"
+        Dim dwriter As New StreamWriter(DiagsFile)
+        For Each l As String In doc
+            l = l.Replace(vbCr, "<CR>" & vbCr)  ' Show it but don't eat it.
+            l = l.Replace(vbLf, "<LF>" & vbLf)
+            l = l.Replace(vbFormFeed, "<FF>" & vbFormFeed)
+            dwriter.WriteLine(l)
+        Next
+        dwriter.Flush()
+        dwriter.Close()
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         If doc.Count > 10 Then
             'Stop
@@ -306,7 +331,7 @@ Public Class devs
 
             Dim writer As New StreamWriter(filename)
             For Each l As String In doc
-                l = l.Replace(vbCr, "<CR>" & vbCr)
+                l = l.Replace(vbCr, "<CR>")
                 l = l.Replace(vbLf, "<LF>")
                 l = l.Replace(vbFormFeed, "<FF>")
                 writer.WriteLine(l)
@@ -508,10 +533,11 @@ Public Class devs
                 StartLine = 0
             End If
 
-            If OS = OSType.OS_MPE Then         '
-                firstline = 26
+            If OS = OSType.OS_MPE Then
+                Program.Log($"Setting page for MPE")
+                firstline = -2
                 linesPerPage = 66
-                StartLine = 3
+                StartLine = 0
             End If
 
             If OS = OSType.OS_VMS Then
@@ -591,7 +617,7 @@ Public Class devs
             For Each line As String In outList
                 Try
                     ' Remove non-printable characters (same as before)
-                    If OS <> OSType.OS_RSTS Then
+                    If ((OS <> OSType.OS_RSTS) And (OS <> OSType.OS_MPE)) Then
                         line = regex.Replace(line, String.Empty) ' Remove non-printable characters
                         ' Replace empty lines with a space
                         line = If(String.IsNullOrEmpty(line), " ", line)
@@ -610,36 +636,42 @@ Public Class devs
                     ' Remove FF characters before drawing
                     If line <> vbFormFeed Then
                         'If the line is just a FF then don't print it, we just created a new page
-
                         ' Check if the line contains embedded CRs (not at the end)
-                        If line.Contains(Chr(13)) AndAlso Not line.EndsWith(Chr(13)) Then
+                        If line.Contains(Chr(13)) Then
                             ' Split the line by CR characters (we will handle the overstrike behavior here)
                             Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
 
                             ' Track the current starting position for drawing
                             Dim currentX As Double = leftMargin
-
-                            ' Iterate through the segments
-                            For Each segment As String In segments
-                                If Not String.IsNullOrEmpty(segment) Then
-                                    ' Draw the base text segment at the starting position
-                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-
-                                    ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
-                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                End If
-                            Next
+                            If (segments.Count > 1) And (segments(1).Trim <> "") Then
+                                'Program.Log($"Segment count is {segments.Count}")
+                                ' Iterate through the segments
+                                Dim segIdx As Integer = 0
+                                For Each segment As String In segments
+                                    'Program.Log($"{segment}")
+                                    If Not String.IsNullOrEmpty(segment) Then
+                                        ' Draw the base text segment at the starting position
+                                        gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                        If segIdx > 0 Then
+                                            ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
+                                            gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                        End If
+                                        segIdx += 1
+                                    End If
+                                Next
+                            Else
+                                'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
+                                ' The second segment is blank, so just write it as usual.
+                                gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                            End If
                         Else
                             ' If there are no CRs, just print the line normally
                             gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                         End If
-
                         ' Move down for the next line
                         y += lineHeight
                         currentLine += 1
                     End If
-
-
                 Catch ex As Exception
                     ' Handle errors (e.g., invalid characters or drawing issues)
                 End Try
