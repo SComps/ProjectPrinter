@@ -29,6 +29,8 @@ Public Class devs
     Private IsConnected As Boolean = False
     Private Receiving = False
     Private JobNumber As Integer = 0
+
+
     Public ReadOnly Property Connected As Boolean
         Get
             Return IsConnected
@@ -70,18 +72,22 @@ Public Class devs
             IsConnected = True
             ' Start receiving data
             Await ReceiveDataAsync(_cancellationTokenSource.Token)
+
         Catch ex As Exception
-            Program.Log($"[{DevName}] {ex.GetType().Name} - {ex.Message}")
+            Program.Log($"[{DevName}] unable to connect to remote host.")
             IsConnected = False
         Finally
             Try
                 Disconnect()
             Catch disconnectEx As Exception
                 Program.Log($"[{DevName}] Error during disconnection: {disconnectEx.Message}")
+                IsConnected = False
             End Try
             IsConnected = False
         End Try
     End Function
+
+
 
     Private Async Function TaskSleepAsync(seconds As Integer) As Task
         Await Task.Delay(seconds * 1000)
@@ -171,6 +177,7 @@ Public Class devs
                     'Go figure, MVS apparently uses overstrikes too.  Crazy!
                     If OS = OSType.OS_VM370 Then currentLine.Append(c)
                     If OS = OSType.OS_MVS38J Then currentLine.Append(c)
+                    If OS = OSType.OS_MPE Then currentLine.Append(c)
                 Case vbLf
                     ' New Line, return to 'home' position implied.
                     If currentLine.ToString.Trim.Length > 0 Then
@@ -197,6 +204,15 @@ Public Class devs
             lines.Add(currentLine.ToString())
         End If
 
+        ' For some reason MPE ends jobs with <FF> then <CR>
+        If (lines(lines.Count - 2) = vbFormFeed) And (lines(lines.Count - 1) = vbCr) Then
+            Program.Log($"[{DevName}] Removing extra control characters after job completion for MPE")
+            'This is end of job data for MPE, we don't need it or we'll
+            'wind up with a blank page
+            lines.RemoveAt(lines.Count - 1)
+            lines.RemoveAt(lines.Count - 1) ' Yes we want to do it twice.
+        End If
+
         ' Check to see if it completes with a FF.  (We do this anyway)
         If lines(lines.Count - 1) = vbFormFeed Then
             lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
@@ -219,9 +235,8 @@ Public Class devs
             _cancellationTokenSource?.Cancel()
             clientStream?.Close()
             client?.Close()
-            Program.Log("Disconnected from server.")
         Catch ex As Exception
-            Program.Log($"Error during disconnection: {ex.Message}")
+            Program.Log($"[{DevName}] Error during disconnection: {ex.Message}")
         End Try
     End Sub
 
