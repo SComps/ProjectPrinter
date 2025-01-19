@@ -1,7 +1,5 @@
 Imports System.Console
 Imports System.IO
-Imports System.Xml.Serialization
-
 Module dev_console
 
     Dim devList As New List(Of devs)
@@ -11,14 +9,27 @@ Module dev_console
 
     Private ErrMsg As String = ""
 
-    Private configFile As String = "devices.cfg"
+    Private configFile As String = "devices.dat"
+
+    Structure filedev
+        Public DevName As String
+        Public DevDescription As String
+        Public DevType As Integer
+        Public ConnType As Integer
+        Public DevDest As String
+        Public OS As Integer
+        Public Auto As Boolean
+        Public PDF As Boolean
+        Public Orientation As Integer
+        Public OutDest As String
+    End Structure
     Sub Main(args As String())
         If args.Count > 0 Then configFile = args(0)   ' If it's not specified, devices.cfg it is.
         AddHandler Console.CancelKeyPress, AddressOf Console_CancelKeyPress
         If OperatingSystem.IsLinux Then
             Console.WriteLine("Running under Linux.")
         Else
-            Console.SetWindowSize(80, 25)
+            'Console.SetWindowSize(80, 25)
         End If
 
         max_Rows = Console.WindowHeight
@@ -89,7 +100,7 @@ Module dev_console
                         If OkToQuit() Then
                             Console.ResetColor()
                             Console.Clear()
-                            End
+                            Environment.Exit(0)
                         Else
                             Exit Select
                         End If
@@ -245,30 +256,54 @@ Module dev_console
         e.Cancel = True
         SetError("Control-C not allowed. Use EXIT instead.")
     End Sub
+
+
     Private Function LoadDevs() As List(Of devs)
-        ' Deserialize all devices.
         Dim newList As New List(Of devs)
-        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamReader(configFile)
-        Try
-            newList = serializer.Deserialize(xmlStream)
-        Catch ex As Exception
-            newList.Clear()
-        Finally
-            xmlStream.Close()
-        End Try
+        ' No  serializer stuff here
+        Using rdr As New StreamReader(configFile)
+            'Is the file empty
+            If rdr.EndOfStream Then
+                Return newList
+            End If
+            Do
+                Dim thisDev As String() = rdr.ReadLine().Split("||", StringSplitOptions.TrimEntries)
+                If thisDev.Count <> 10 Then
+                    'Do nothing with the device, it's invalid... somebody mess with the file?
+                Else
+                    Dim nd As New devs
+                    nd.DevName = thisDev(0)
+                    nd.DevDescription = thisDev(1)
+                    nd.DevType = Val(thisDev(2))
+                    nd.ConnType = Val(thisDev(3))
+                    nd.DevDest = thisDev(4)
+                    nd.OS = Val(thisDev(5))
+                    If thisDev(6) = "True" Then
+                        nd.Auto = True
+                    Else
+                        nd.Auto = False
+                    End If
+                    If thisDev(7) = "True" Then
+                        nd.PDF = True
+                    Else
+                        nd.PDF = False
+                    End If
+                    nd.Orientation = Val(thisDev(8))
+                    nd.OutDest = thisDev(9)
+                    newList.Add(nd)
+                End If
+            Loop Until rdr.EndOfStream
+        End Using
         Return newList
     End Function
-
     Sub SaveDevices()
-        ' Serialize the device list to XML
-        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamWriter(configFile)
-        Using sw As New StringWriter()
-            serializer.Serialize(sw, devList)
-            xmlStream.Write(sw.ToString())
-            xmlStream.Close()
+        Using writer As New StreamWriter(configFile, append:=False)
+            For Each d As devs In devList
+                writer.WriteLine($"{d.DevName}||{d.DevDescription}||{d.DevType}||{d.ConnType}||{d.DevDest}||{d.OS}||{d.Auto}||" &
+                    $"{d.PDF}||{d.Orientation}||{d.OutDest}")
+            Next
         End Using
+
     End Sub
     Sub DisplayMenu()
         BackgroundColor = ConsoleColor.Black
