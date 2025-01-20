@@ -1,6 +1,7 @@
 Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
+Imports System.Reflection
 Imports System.Text
 Imports System.Threading
 
@@ -47,6 +48,13 @@ Module Program
     Public WithEvents statTimer As New System.Timers.Timer
 
     Public Function Main(args As String()) As Integer
+        Dim assembly As Assembly = Assembly.GetExecutingAssembly()
+        Dim version As Version = assembly.GetName().Version
+        If args.Count = 1 And args(0).ToUpper = "VERSION" Then
+            Console.WriteLine("Project printer version: " & version.ToString & ". 2024 open source project.")
+            Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
+            Return 0
+        End If
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
