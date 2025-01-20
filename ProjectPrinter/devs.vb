@@ -592,9 +592,7 @@ Public Class devs
 
                                         ' Draw background image to cover entire page
                                         gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
-                                        'Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
-                                        'Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
-                                        'DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
+                                        'DrawGreenBarBackground(gfx, availableWidth, page.Height.Point)
                                         ' Recalculate available width for text after margins
                                         availableWidth = page.Width.Point - leftMargin - rightMargin
 
@@ -709,7 +707,55 @@ Public Class devs
     End Function
 
     ' EXPERIMENTAL
-    Public Sub DrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
+
+    Public Sub DrawGreenBarBackground(ByVal gfx As XGraphics, ByVal pageWidth As Double, ByVal pageHeight As Double)
+        ' Define colors for the stripes
+        Dim whiteColor As XColor = XColors.White
+        Dim greenColor As XColor = XColor.FromArgb(232, 255, 232) ' Light green
+
+        ' Define stripe heights (in points, approximated from image analysis)
+        Dim whiteStripeHeight As Double = 49 * 72 / 96 ' Convert 49 pixels to points (assuming 96 DPI)
+        Dim greenStripeHeight As Double = 16 * 72 / 96 ' Convert 16 pixels to points (assuming 96 DPI)
+
+        ' Start drawing from the top of the page
+        Dim currentY As Double = 0
+
+        ' Loop to fill the page with alternating stripes
+        While currentY < pageHeight
+            ' Draw white stripe
+            gfx.DrawRectangle(New XSolidBrush(whiteColor), 0, currentY, pageWidth, whiteStripeHeight)
+            currentY += whiteStripeHeight
+
+            ' Check if we're still within the page height
+            If currentY >= pageHeight Then Exit While
+
+            ' Draw green stripe
+            gfx.DrawRectangle(New XSolidBrush(greenColor), 0, currentY, pageWidth, greenStripeHeight)
+            currentY += greenStripeHeight
+        End While
+
+        ' Optional: Draw vertical perforation marks on the left and right edges
+        Dim dotSpacing As Double = 10 * 72 / 96 ' Approximate spacing between dots in points
+        Dim dotDiameter As Double = 2 * 72 / 96 ' Approximate dot size in points
+        Dim dotColor As XColor = XColors.Gray
+
+        ' Left edge perforations
+        Dim currentDotY As Double = 0
+        While currentDotY < pageHeight
+            gfx.DrawEllipse(New XSolidBrush(dotColor), 0, currentDotY, dotDiameter, dotDiameter)
+            currentDotY += dotSpacing
+        End While
+
+        ' Right edge perforations
+        currentDotY = 0
+        Dim rightEdgeX As Double = pageWidth - dotDiameter
+        While currentDotY < pageHeight
+            gfx.DrawEllipse(New XSolidBrush(dotColor), rightEdgeX, currentDotY, dotDiameter, dotDiameter)
+            currentDotY += dotSpacing
+        End While
+    End Sub
+
+    Public Sub OldDrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
         Const feedHoleRadius As Double = 5.5
         Dim pageWidth As Double = gfx.PageSize.Width
         Dim pageHeight As Double = gfx.PageSize.Height
