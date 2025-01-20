@@ -1,8 +1,7 @@
 {
   "profiles": {
     "ProjectPrinter": {
-      "commandName": "Project",
-      "commandLineArgs": "version"
+      "commandName": "Project"
     }
   }
 }
