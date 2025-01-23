@@ -1,8 +1,11 @@
 ﻿Imports System.IO
+Imports System.IO.Compression
+Imports System.Net
 Imports System.Net.Sockets
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Threading.Tasks.Dataflow
 Imports PdfSharp.Drawing
 Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
@@ -169,9 +172,10 @@ Public Class devs
 
     Private Sub ProcessDocumentData(documentData As String)
         ' Split the data into lines and process it
+        JobNumber = JobNumber + 1
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
-        Dim dataStream As String = OutDest & "/dataStream" & Now.Ticks.ToString & ".dst"
+        Dim dataStream As String = $"{OutDest}/{DevName}--{Now.DayOfYear}--{JobNumber}.dst"
         Dim swriter As New StreamWriter(dataStream)
         'Stop
         ' Process each character in the full data
@@ -179,16 +183,8 @@ Public Class devs
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
         ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
         For Each c As Char In documentData
-            Select Case c
-                Case vbCr
-                    swriter.Write("<cr>" & c)
-                Case vbLf
-                    swriter.Write("<lf>" & c)
-                Case vbFormFeed
-                    swriter.Write("<ff>" & c)
-                Case Else
-                    swriter.Write(c)
-            End Select
+            ' Output to the dst file
+            swriter.Write(c)
             Select Case c
                 Case vbCr
                     'Pass it into the string as printable data if it's VM370
@@ -271,16 +267,6 @@ Public Class devs
             Program.Log($"[{DevName}] Created output directory {OutDest}")
             FileIO.FileSystem.CreateDirectory(OutDest)
         End If
-        Dim DiagsFile As String = "DIAG-" & Now.Ticks.ToString & ".txt"
-        Dim dwriter As New StreamWriter(DiagsFile)
-        For Each l As String In doc
-            l = l.Replace(vbCr, "<CR>" & vbCr)  ' Show it but don't eat it.
-            l = l.Replace(vbLf, "<LF>" & vbLf)
-            l = l.Replace(vbFormFeed, "<FF>" & vbFormFeed)
-            dwriter.WriteLine(l)
-        Next
-        dwriter.Flush()
-        dwriter.Close()
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         If doc.Count > 10 Then
             'Stop
@@ -306,7 +292,7 @@ Public Class devs
                     idx = idx + 1
                 Loop
             End If
-            JobNumber = JobNumber + 1
+
             Dim JobID, JobName, UserID As String
             Select Case OS
                 Case OSType.OS_MVS38J
@@ -344,15 +330,15 @@ Public Class devs
             Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
 
 
-            Dim writer As New StreamWriter(filename)
-            For Each l As String In doc
-                l = l.Replace(vbCr, "<CR>")
-                l = l.Replace(vbLf, "<LF>")
-                l = l.Replace(vbFormFeed, "<FF>")
-                writer.WriteLine(l)
-            Next
-            writer.Flush()
-            writer.Close()
+            'Dim writer As New StreamWriter(filename)
+            'For Each l As String In doc
+            'l = l.Replace(vbCr, "<CR>")
+            'l = l.Replace(vbLf, "<LF>")
+            'l = l.Replace(vbFormFeed, "<FF>")
+            'writer.WriteLine(l)
+            'Next
+            'writer.Flush()
+            'writer.Close()
 
             CreatePDF(JobName, doc, pdfName)
 
@@ -488,6 +474,7 @@ Public Class devs
     End Function
 
     Private Function MPE_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Stop
         Dim GotInfo As Boolean = False
         Dim jobName As String = "UnknownJob"
         Dim jobId As String = "0000"
@@ -705,6 +692,27 @@ Public Class devs
         Return "" ' Just to quiet down the IDE
 
     End Function
+
+    Public Sub Reprint(jobname As String)
+
+        Program.Log($"Reprinting job {jobname} for device {DevName}")
+        'Dim dstNameFormat = $"{OutDest}/{DevName}-{Now.DayOfYear}-{JobNumber}.dst"
+        If Not jobname.EndsWith(".dst") Then
+            jobname = jobname & ".dst"
+        End If
+        Dim fname As String = OutDest & "/" & jobname
+        If Not FileIO.FileSystem.FileExists(fname) Then
+            Program.Log($"[{DevName}] Job {fname} does not exist in {OutDest}.")
+            Return
+        End If
+        Dim dataBuilder As New StringBuilder()
+        Dim inFile As New StreamReader(fname)
+        dataBuilder.Append(inFile.ReadToEnd)
+        ProcessDocumentData(dataBuilder.ToString)
+        dataBuilder.Clear()
+        inFile.Close()
+
+    End Sub
 
     ' EXPERIMENTAL
 

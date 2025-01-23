@@ -406,7 +406,22 @@ Module Program
             Case "GUI_RDEV"
                 ' Receives Device configuration for all devices.
             Case "RESTART"
-
+            Case "REPRINT"
+                ' Code here to reprint a job from .dst file.
+                Dim parts As String() = parsed(1).Split("--")
+                Dim myIndex As Integer = -1
+                For Each d As devs In DevList
+                    If d.DevName = parts(0) Then
+                        myIndex = DevList.IndexOf(d)
+                    End If
+                Next
+                If myIndex > -1 Then
+                    Program.Log("Requesting reprint of " & parsed(1))
+                    DevList(myIndex).Reprint(parsed(1))
+                Else
+                    Return parsed(1) & " bad."
+                End If
+                Return ($"*** Reprint requestioned.")
         End Select
         Return String.Format(NoCommand, input)
     End Function
