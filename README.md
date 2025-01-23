@@ -1,5 +1,8 @@
 # ProjectPrinter
 
+1/22/25-Disabled writing of diagnostic and debugging text files with the exception of the .dst files.  The dst files are no longer parsed, but *exactly* as was received via the remote host system.  This facilitates the new "REPRINT" command via the telnet managegment interface. (port 16000).  dst filenames are semi-coded, and should not be changed.  If you do, the potential for an error during reprint is great.
+Note reprints will generate the same output and job filenames as previous.  If you're looking for two copies, be sure to rename the first .pdf before you reprint or you'll still only have one copy, except it'll be dated differently.
+
 <b>Changes to device configuration</b>
 
 Due to an issue with AOT, the XML configuration file system has been scrapped.  Now it's a custom text file readable by the applications.  It's no longer devices.cfg (to avoid confusion) but devices.dat.  You will need to reconfigure all your devices.  Note there is now an Orientation and Output Directory option for device configuration.  Orientation is still in progress, so landscape is still the only option that works (it will do landscape regardless of your setting).  Additionally it can now place the output PDF and TXT files in a specific folder or directory.  Each printer can have it's own output directory to allow you to separate jobs by printer.  When you configure this path, it can be both absolute or relative.  Leave off the final slash.  It'll strip it off if it sees it, but why bother if you don't have to.
