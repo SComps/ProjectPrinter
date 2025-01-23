@@ -411,7 +411,7 @@ Module Program
                 Dim parts As String() = parsed(1).Split("--")
                 Dim myIndex As Integer = -1
                 For Each d As devs In DevList
-                    If d.DevName = parts(0) Then
+                    If d.DevName.ToUpper = parts(0).ToUpper Then    ' Easier to compare.
                         myIndex = DevList.IndexOf(d)
                     End If
                 Next
