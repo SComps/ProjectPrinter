@@ -11,6 +11,10 @@ Module dev_console
 
     Private configFile As String = "devices.dat"
 
+    Private StartShow As Integer = 0
+    Private StopShow As Integer = 0
+
+
     Structure filedev
         Public DevName As String
         Public DevDescription As String
@@ -51,7 +55,9 @@ Module dev_console
         End If
         devList.Clear()
         devList = LoadDevs()
-
+        StartShow = 0
+        StopShow = StartShow + 4
+        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
         Do While True
             DisplayMenu()
             Dim sel As String = ""
@@ -104,6 +110,18 @@ Module dev_console
                         Else
                             Exit Select
                         End If
+                    Case "D", "DOWN"
+                        StartShow = StopShow + 4
+                        If StartShow > (devList.Count - 1) - 4 Then StartShow = (devList.Count - 1) - 4
+                        If StartShow < 0 Then StartShow = 0
+                        StopShow = StartShow + 4
+                        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
+                    Case "U", "UP"
+                        StartShow = StopShow - 4
+                        If StartShow > (devList.Count - 1) - 4 Then StartShow = (devList.Count - 1) - 4
+                        If StartShow < 0 Then StartShow = 0
+                        StopShow = StartShow + 4
+                        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
                     Case Else
                         Dim itemID As Integer = Val(sel)
                         Select Case itemID
@@ -151,36 +169,36 @@ Module dev_console
         Say("CONN TYPE: Always 0 (sockdev)", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
         Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
-        Say("       DEVICE NAME:", 5, 4, ConsoleColor.Cyan)
-        Say("DEVICE DESCRIPTION:", 5, 6, ConsoleColor.Cyan)
-        Say("       DEVICE TYPE:", 5, 8, ConsoleColor.Cyan)
-        Say("   CONNECTION TYPE:", 5, 10, ConsoleColor.Cyan)
-        Say("  OPERATING SYSTEM:", 5, 12, ConsoleColor.Cyan)
-        Say("DEVICE DESTINATION:", 5, 14, ConsoleColor.Cyan)
-        Say("      AUTO CONNECT:", 5, 16, ConsoleColor.Cyan)
-        Say("        OUTPUT PDF:", 5, 18, ConsoleColor.Cyan)
-        Say("ORIENTATION:", 40, 18, ConsoleColor.Cyan)
-        Say("        OUTPUT DIR:", 5, 20, ConsoleColor.Cyan)
-        Say(thisDev.DevName, 26, 4, ConsoleColor.Yellow)
-        Say(thisDev.DevDescription, 26, 6, ConsoleColor.Yellow)
-        Say(thisDev.DevType, 26, 8, ConsoleColor.Yellow)
-        Say(thisDev.ConnType, 26, 10, ConsoleColor.Yellow)
-        Say(thisDev.OS, 26, 12, ConsoleColor.Yellow)
-        Say(thisDev.DevDest, 26, 14, ConsoleColor.Yellow)
-        Say(thisDev.Auto, 26, 16, ConsoleColor.Yellow)
-        Say(thisDev.PDF, 26, 18, ConsoleColor.Yellow)
-        Say(thisDev.Orientation, 54, 18, ConsoleColor.Yellow)
-        Say(thisDev.OutDest, 26, 20, ConsoleColor.Yellow)
-        Dim myName As String = GetString(thisDev.DevName, 26, 4, 15, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myDesc As String = GetString(thisDev.DevDescription, 26, 6, 30, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myType As String = GetString(thisDev.DevType, 26, 8, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myConn As String = GetString(thisDev.ConnType, 26, 10, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myOS As String = GetString(thisDev.OS, 26, 12, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myDest As String = GetString(thisDev.DevDest, 26, 14, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myAuto As String = GetString(thisDev.Auto, 26, 16, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myPDF As String = GetString(thisDev.PDF, 26, 18, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myOrient As String = GetString(thisDev.Orientation, 54, 18, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
-        Dim myOutDest As String = GetString(thisDev.OutDest, 26, 20, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Say("       DEVICE NAME:", 5, 3, ConsoleColor.Cyan)
+        Say("DEVICE DESCRIPTION:", 5, 5, ConsoleColor.Cyan)
+        Say("       DEVICE TYPE:", 5, 7, ConsoleColor.Cyan)
+        Say("   CONNECTION TYPE:", 5, 9, ConsoleColor.Cyan)
+        Say("  OPERATING SYSTEM:", 5, 11, ConsoleColor.Cyan)
+        Say("DEVICE DESTINATION:", 5, 13, ConsoleColor.Cyan)
+        Say("      AUTO CONNECT:", 5, 15, ConsoleColor.Cyan)
+        Say("        OUTPUT PDF:", 5, 17, ConsoleColor.Cyan)
+        Say("ORIENTATION:", 40, 17, ConsoleColor.Cyan)
+        Say("        OUTPUT DIR:", 5, 19, ConsoleColor.Cyan)
+        Say(thisDev.DevName, 26, 3, ConsoleColor.Yellow)
+        Say(thisDev.DevDescription, 26, 5, ConsoleColor.Yellow)
+        Say(thisDev.DevType, 26, 7, ConsoleColor.Yellow)
+        Say(thisDev.ConnType, 26, 9, ConsoleColor.Yellow)
+        Say(thisDev.OS, 26, 11, ConsoleColor.Yellow)
+        Say(thisDev.DevDest, 26, 13, ConsoleColor.Yellow)
+        Say(thisDev.Auto, 26, 15, ConsoleColor.Yellow)
+        Say(thisDev.PDF, 26, 17, ConsoleColor.Yellow)
+        Say(thisDev.Orientation, 54, 17, ConsoleColor.Yellow)
+        Say(thisDev.OutDest, 26, 19, ConsoleColor.Yellow)
+        Dim myName As String = GetString(thisDev.DevName, 26, 3, 15, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myDesc As String = GetString(thisDev.DevDescription, 26, 5, 30, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myType As String = GetString(thisDev.DevType, 26, 7, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myConn As String = GetString(thisDev.ConnType, 26, 9, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOS As String = GetString(thisDev.OS, 26, 11, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myDest As String = GetString(thisDev.DevDest, 26, 13, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myAuto As String = GetString(thisDev.Auto, 26, 15, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myPDF As String = GetString(thisDev.PDF, 26, 17, 10, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOrient As String = GetString(thisDev.Orientation, 54, 17, 1, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
+        Dim myOutDest As String = GetString(thisDev.OutDest, 26, 19, 50, ConsoleColor.Yellow, ConsoleColor.Black, ConsoleColor.White)
         Say("Save? (Y/n) ==> ", 1, max_Rows - 4, ConsoleColor.Green)
         Dim opt As String = Console.ReadLine
         If opt.ToUpper.StartsWith("Y") Then
@@ -330,7 +348,7 @@ Module dev_console
         ConsoleResetColor()
         Console.SetCursorPosition(0, 6)
         Console.WriteLine(devLine)
-        For x = 0 To (devList.Count - 1)
+        For x = StartShow To StopShow
             Dim thisDev As devs = devList(x)
             Console.SetCursorPosition(0, 7 + (x * 2))
             Console.ForegroundColor = ConsoleColor.Yellow
@@ -373,7 +391,7 @@ Module dev_console
         Console.SetCursorPosition(1, max_Rows - 3)
         Console.ForegroundColor = ConsoleColor.White
         Console.WriteLine("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370")
-        Console.WriteLine(" CONN: (0) SOCKDEV (others not implemented)")
+        Console.WriteLine(" CONN: (0)      DISPLAY PAGE (D)OWN (U)P")
         Console.Write(" Command: ADD, SAVE, EXIT or Item # to EDIT, or DELETE #")
 
     End Sub
