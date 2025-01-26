@@ -1,4 +1,5 @@
 Imports System.Console
+Imports System.Drawing
 Imports System.IO
 Imports System.Text
 Module dev_console
@@ -34,7 +35,7 @@ Module dev_console
         If OperatingSystem.IsLinux Then
             Console.WriteLine("Running under Linux.")
         Else
-            'Console.SetWindowSize(80, 25)
+            Console.SetWindowSize(80, 24)
         End If
 
         max_Rows = Console.WindowHeight
@@ -93,6 +94,11 @@ Module dev_console
                             devList.RemoveAt(Val(parts(1) - 1)) ' remember 0 based
                         End If
                     End If
+                    ' Adjust Start/Stop
+                    Dim NewStop = devList.Count - 1
+                    If StartShow + 4 > devList.Count - 1 Then
+                        StopShow = devList.Count + 1
+                    End If
                 End If
             Else
                 Select Case sel
@@ -103,6 +109,11 @@ Module dev_console
                     Case "ADD"
                         devList.Add(New devs)
                         EditItem(devList.Count)
+                        ' Adjust Start/Stop
+                        Dim NewStop = devList.Count - 1
+                        If StartShow + 4 > devList.Count - 1 Then
+                            StopShow = devList.Count + 1
+                        End If
                     Case "EXIT"
                         If OkToQuit() Then
                             Console.ResetColor()
@@ -112,17 +123,22 @@ Module dev_console
                             Exit Select
                         End If
                     Case "D", "DOWN"
-                        StartShow = StopShow + 4
-                        If StartShow > (devList.Count - 1) - 4 Then StartShow = (devList.Count - 1) - 4
-                        If StartShow < 0 Then StartShow = 0
+                        StartShow = StopShow
                         StopShow = StartShow + 4
-                        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
+                        If StopShow > (devList.Count - 1) Then
+                            StopShow = (devList.Count - 1)
+                            StartShow = StopShow - 4
+                        End If
+
                     Case "U", "UP"
-                        StartShow = StopShow - 4
+                        StartShow = StartShow - 4
                         If StartShow > (devList.Count - 1) - 4 Then StartShow = (devList.Count - 1) - 4
                         If StartShow < 0 Then StartShow = 0
                         StopShow = StartShow + 4
-                        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
+                        If StopShow > (devList.Count - 1) Then
+                            StopShow = (devList.Count - 1)
+                            StartShow = StopShow - 4
+                        End If
                     Case Else
                         Dim itemID As Integer = Val(sel)
                         Select Case itemID
@@ -166,8 +182,7 @@ Module dev_console
         Say(bannerLine, 0, 0, ConsoleColor.White)
         Say(CenterString($"E D I T   D E V I C E", max_Cols), 0, 1, ConsoleColor.White)
         Say(bannerLine, 0, 2, ConsoleColor.White)
-        Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370", 1, max_Rows - 3, ConsoleColor.White)
-        Say("CONN TYPE: Always 0 (sockdev)", 1, max_Rows - 2, ConsoleColor.White)
+        Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
         Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
         Say("       DEVICE NAME:", 5, 3, ConsoleColor.Cyan)
@@ -394,6 +409,12 @@ Module dev_console
         ForegroundColor = ConsoleColor.White
         Dim bannerLine As String = StrDup(max_Cols, "=")
         Dim devLine As String = ""
+        If StartShow < 0 Then StartShow = 0
+        If StopShow > StartShow + 4 Then StopShow = StartShow + 4
+        If StopShow > (devList.Count - 1) Then
+            StopShow = devList.Count - 1
+            StartShow = StopShow - 4
+        End If
         If max_Cols > 90 Then
             devLine = "      DEVICE          NAME                          OS  CONN  AUTO  PDF  DEST"
         Else
@@ -404,6 +425,12 @@ Module dev_console
         Console.Write(bannerLine)
         Console.SetCursorPosition(0, 1)
         Console.WriteLine($" PROJECT PRINTER DEVICE CONFIGURATION [{configFile}] {devList.Count} devices.")
+        Dim PageDisp As String = $"Page: ({StartShow + 1}-{StopShow + 1})"
+        Dim stPos As Integer = (max_Cols - 1) - (PageDisp.Length - 1)
+        Console.SetCursorPosition(stPos, 1)
+        Console.ForegroundColor = ConsoleColor.Green
+        Console.Write(PageDisp)
+        ConsoleResetColor()
         Console.SetCursorPosition(0, 2)
         Console.Write(bannerLine)
         Console.SetCursorPosition(1, 4)
@@ -414,31 +441,33 @@ Module dev_console
         ConsoleResetColor()
         Console.SetCursorPosition(0, 6)
         Console.WriteLine(devLine)
+        Dim currLine As Integer = 7
+        If StopShow > devList.Count - 1 Then StopShow = devList.Count
         For x = StartShow To StopShow
             Dim thisDev As devs = devList(x)
-            Console.SetCursorPosition(0, 7 + (x * 2))
+            Console.SetCursorPosition(0, currLine)
             Console.ForegroundColor = ConsoleColor.Yellow
             Console.Write($"{x + 1:00}")
-            Console.SetCursorPosition(6, 7 + (x * 2))
+            Console.SetCursorPosition(6, currLine)
             Console.ForegroundColor = ConsoleColor.Cyan
             Console.Write(thisDev.DevName)
-            Console.SetCursorPosition(22, 7 + (x * 2))
+            Console.SetCursorPosition(22, currLine)
             Console.ForegroundColor = ConsoleColor.Cyan
             Console.Write(thisDev.DevDescription)
-            Console.SetCursorPosition(53, 7 + (x * 2))
+            Console.SetCursorPosition(53, currLine)
             Console.ForegroundColor = ConsoleColor.Cyan
             Console.Write(thisDev.OS)
-            Console.SetCursorPosition(59, 7 + (x * 2))
+            Console.SetCursorPosition(59, currLine)
             Console.ForegroundColor = ConsoleColor.Cyan
             Console.Write(thisDev.ConnType)
-            Console.SetCursorPosition(62, 7 + (x * 2))
+            Console.SetCursorPosition(62, currLine)
             Console.ForegroundColor = ConsoleColor.Yellow
             If thisDev.Auto Then
                 Console.Write("YES")
             Else
                 Console.Write("NO")
             End If
-            Console.SetCursorPosition(68, 7 + (x * 2))
+            Console.SetCursorPosition(68, currLine)
             Console.ForegroundColor = ConsoleColor.Yellow
             If thisDev.PDF Then
                 Console.Write("YES")
@@ -446,19 +475,20 @@ Module dev_console
                 Console.Write("NO")
             End If
             If max_Cols > 90 Then
-                Console.SetCursorPosition(73, 7 + (x * 2))
+                Console.SetCursorPosition(73, currLine)
             Else
-                Console.SetCursorPosition(5, 8 + (x * 2))
+                Console.SetCursorPosition(5, currLine + 1)
             End If
             Console.ForegroundColor = ConsoleColor.Green
             Console.Write(thisDev.DevDest)
+            currLine = currLine + 2
             ConsoleResetColor()
         Next
-        Console.SetCursorPosition(1, max_Rows - 3)
+        Console.SetCursorPosition(0, max_Rows - 3)
         Console.ForegroundColor = ConsoleColor.White
         Console.WriteLine("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370")
-        Console.WriteLine(" CONN: (0)      DISPLAY PAGE (D)OWN (U)P")
-        Console.Write(" Command: ADD, SAVE, EXIT or Item # to EDIT, or DELETE #")
+        Console.WriteLine("Paging: PgUp, PgDn or use Command UP and DOWN")
+        Console.Write("Command: ADD, SAVE, EXIT or Item # to EDIT, or DELETE #")
 
     End Sub
 
@@ -543,6 +573,7 @@ Module dev_console
                 Return accumulatedInput
             End If
         End While
+        Return accumulatedInput
     End Function
 
 End Module
