@@ -238,6 +238,7 @@ Module dev_console
     End Function
 
     Private Function GetString(value As String, col As Integer, line As Integer, len As Integer, dColor As Integer, Optional fcolor As Integer = -1, Optional BColor As Integer = -1) As String
+        If value Is Nothing Then value = ""
         Dim editedString As String = value
         Dim cursorPosition As Integer = value.Length
         Dim keyInfo As ConsoleKeyInfo
