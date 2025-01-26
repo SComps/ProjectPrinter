@@ -475,25 +475,73 @@ Module dev_console
             End If
         End If
     End Sub
-    Private Function GetCmd() As String
-        Dim cmd As String = ""
+    Public Function GetCmd() As String
+        SetError("")  ' Clear any previous errors
+        Console.SetCursorPosition(13, 4)
 
-        ' Capture the key pressed
-        Dim key As ConsoleKey = Console.ReadKey(True).Key
+        Dim accumulatedInput As String = ""  ' To store the accumulated input
+        Dim insertMode As Boolean = False    ' Track Insert/Overwrite mode
+        Dim cursorPosition As Integer = 0    ' Track the position of the cursor
 
-        Select Case key
-            Case ConsoleKey.PageUp
-                ' Return the string corresponding to UP
-                cmd = "UP"
-            Case ConsoleKey.PageDown
-                ' Return the string corresponding to DOWN
-                cmd = "DOWN"
-            Case Else
-                ' For other keys, return the key as a string (or handle as needed)
-                cmd = key.ToString()
-        End Select
+        While True
+            Dim key As ConsoleKeyInfo = Console.ReadKey(True)  ' Capture the key press without displaying it
 
-        Return cmd
+            ' Handle PageUp and PageDown to return "UP" or "DOWN"
+            If key.Key = ConsoleKey.PageUp Then
+                ' Discard accumulated input and return "UP"
+                Return "UP"
+            ElseIf key.Key = ConsoleKey.PageDown Then
+                ' Discard accumulated input and return "DOWN"
+                Return "DOWN"
+            End If
+
+            ' Handle Backspace: Remove the last character
+            If key.Key = ConsoleKey.Backspace Then
+                If cursorPosition > 0 Then
+                    accumulatedInput = accumulatedInput.Remove(cursorPosition - 1, 1) ' Remove char
+                    cursorPosition -= 1
+                    Console.SetCursorPosition(13 + cursorPosition, 4) ' Move cursor back and redraw
+                    Console.Write(" "c) ' Erase the character
+                    Console.SetCursorPosition(13 + cursorPosition, 4) ' Reset cursor position
+                End If
+                ' Handle Delete: Remove the character at the current cursor position
+            ElseIf key.Key = ConsoleKey.Delete Then
+                If cursorPosition < accumulatedInput.Length Then
+                    accumulatedInput = accumulatedInput.Remove(cursorPosition, 1) ' Remove char
+                    Console.SetCursorPosition(13 + cursorPosition, 4) ' Move cursor to the current position
+                    Console.Write(" "c) ' Erase the character
+                    Console.SetCursorPosition(13 + cursorPosition, 4) ' Reset cursor position
+                End If
+                ' Handle Insert: Toggle between insert and overwrite modes
+            ElseIf key.Key = ConsoleKey.Insert Then
+                insertMode = Not insertMode  ' Toggle insert mode
+                ' Optionally, display a message to indicate the mode (this is up to you)
+                ' Handle normal typing: Add a character to the input string
+            ElseIf Char.IsLetterOrDigit(key.KeyChar) OrElse Char.IsPunctuation(key.KeyChar) OrElse Char.IsWhiteSpace(key.KeyChar) Then
+                If insertMode AndAlso cursorPosition < accumulatedInput.Length Then
+                    ' In insert mode, insert the character at the current cursor position
+                    accumulatedInput = accumulatedInput.Insert(cursorPosition, key.KeyChar)
+                Else
+                    ' In overwrite mode (or if no insert mode), just append the character
+                    If cursorPosition < accumulatedInput.Length Then
+                        accumulatedInput = accumulatedInput.Remove(cursorPosition, 1).Insert(cursorPosition, key.KeyChar)
+                    Else
+                        accumulatedInput &= key.KeyChar
+                    End If
+                End If
+                cursorPosition += 1
+            End If
+
+            ' Redraw the accumulated input after each key press
+            Console.SetCursorPosition(13, 4)
+            Console.Write(accumulatedInput.PadRight(accumulatedInput.Length)) ' Clear and reprint the string
+            Console.SetCursorPosition(13 + cursorPosition, 4) ' Reset cursor position after typing
+
+            ' If Enter is pressed, return the accumulated string
+            If key.Key = ConsoleKey.Enter Then
+                Return accumulatedInput
+            End If
+        End While
     End Function
 
 End Module
