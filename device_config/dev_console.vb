@@ -1,5 +1,6 @@
 Imports System.Console
 Imports System.IO
+Imports System.Text
 Module dev_console
 
     Dim devList As New List(Of devs)
@@ -237,6 +238,70 @@ Module dev_console
     End Function
 
     Private Function GetString(value As String, col As Integer, line As Integer, len As Integer, dColor As Integer, Optional fcolor As Integer = -1, Optional BColor As Integer = -1) As String
+        Dim editedString As String = value
+        Dim cursorPosition As Integer = value.Length
+        Dim keyInfo As ConsoleKeyInfo
+        Dim outputLength As Integer = Math.Min(len, editedString.Length)
+
+        Console.SetCursorPosition(col, line)
+        Console.Write(editedString.PadRight(len)) ' Display the string
+        Console.SetCursorPosition(col + cursorPosition, line)
+
+        Do
+            keyInfo = Console.ReadKey(True) ' Capture key press without displaying it
+
+            Select Case keyInfo.Key
+                Case ConsoleKey.LeftArrow
+                    ' Move cursor left
+                    If cursorPosition > 0 Then
+                        cursorPosition -= 1
+                    End If
+
+                Case ConsoleKey.RightArrow
+                    ' Move cursor right
+                    If cursorPosition < outputLength Then
+                        cursorPosition += 1
+                    End If
+
+                Case ConsoleKey.Backspace
+                    ' Delete character before cursor
+                    If cursorPosition > 0 Then
+                        editedString = editedString.Remove(cursorPosition - 1, 1)
+                        cursorPosition -= 1
+                    End If
+
+                Case ConsoleKey.Delete
+                    ' Delete character at cursor
+                    If cursorPosition < editedString.Length Then
+                        editedString = editedString.Remove(cursorPosition, 1)
+                    End If
+
+                Case ConsoleKey.Escape
+                    ' Cancel editing, return original value
+                    Return value
+
+                Case ConsoleKey.Enter
+                    ' Finish editing
+                    Exit Do
+
+                Case Else
+                    ' Handle character input
+                    If editedString.Length < len AndAlso Not Char.IsControl(keyInfo.KeyChar) Then
+                        editedString = editedString.Insert(cursorPosition, keyInfo.KeyChar.ToString())
+                        cursorPosition += 1
+                    End If
+            End Select
+
+            ' Update display
+            Console.SetCursorPosition(col, line)
+            Console.Write(editedString.PadRight(len)) ' Display edited string
+            Console.SetCursorPosition(col + cursorPosition, line)
+        Loop
+
+        Return editedString
+    End Function
+
+    Private Function OGetString(value As String, col As Integer, line As Integer, len As Integer, dColor As Integer, Optional fcolor As Integer = -1, Optional BColor As Integer = -1) As String
         Dim curfColor As ConsoleColor = Console.ForegroundColor
         Dim curbColor As ConsoleColor = Console.BackgroundColor
         If value Is Nothing Then value = ""
@@ -410,11 +475,25 @@ Module dev_console
             End If
         End If
     End Sub
-    Public Function GetCmd() As String
-        SetError("")
-        Console.SetCursorPosition(13, 4)
-        Dim selection As String = Console.ReadLine()
-        Return selection
+    Private Function GetCmd() As String
+        Dim cmd As String = ""
+
+        ' Capture the key pressed
+        Dim key As ConsoleKey = Console.ReadKey(True).Key
+
+        Select Case key
+            Case ConsoleKey.PageUp
+                ' Return the string corresponding to UP
+                cmd = "UP"
+            Case ConsoleKey.PageDown
+                ' Return the string corresponding to DOWN
+                cmd = "DOWN"
+            Case Else
+                ' For other keys, return the key as a string (or handle as needed)
+                cmd = key.ToString()
+        End Select
+
+        Return cmd
     End Function
 
 End Module
