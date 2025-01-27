@@ -114,6 +114,8 @@ Module dev_console
                         If StartShow + 4 > devList.Count - 1 Then
                             StopShow = devList.Count + 1
                         End If
+                        If StartShow < 0 Then StartShow = 0
+                        If StopShow > devList.Count - 1 Then StopShow = devList.Count - 1
                     Case "EXIT"
                         If OkToQuit() Then
                             Console.ResetColor()
