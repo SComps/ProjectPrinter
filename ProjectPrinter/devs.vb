@@ -127,7 +127,7 @@ Public Class devs
         Dim buffer(4096) As Byte ' Larger buffer for fewer ReadAsync calls
         Dim dataBuilder As New StringBuilder()
         Dim lastReceivedTime As DateTime = DateTime.Now
-        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(2) ' Timeout period (2 seconds)
+        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(5) ' Timeout period (2 seconds)
 
         Try
             While Not cancellationToken.IsCancellationRequested
@@ -135,7 +135,7 @@ Public Class devs
                 If Not clientStream.DataAvailable Then
                     ' Wait for data to become available (with a small delay to avoid busy-waiting)
                     If OS = OSType.OS_NOS278 Then
-                        Await Task.Delay(1000, cancellationToken) ' Block for 100ms and check again
+                        Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
                     Else
                         Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
                     End If
@@ -150,11 +150,11 @@ Public Class devs
                     ' If data is available, read it
                     If Not Receiving Then
                         Receiving = True
-                        If OS <> OSType.OS_RSTS Then
+                        If (OS <> OSType.OS_RSTS) And (OS <> OSType.OS_NOS278) Then
                             Program.Log($"[{DevName}] receiving data from remote host.")
 
                         Else
-                            Program.Log($"[{DevName}] receiving data from low speed device for RSTS/E")
+                            Program.Log($"[{DevName}] receiving data from low speed device. Sit back and relax.")
                         End If
                     End If
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
@@ -248,7 +248,7 @@ Public Class devs
         If lines(lines.Count - 1) = vbFormFeed Then
             lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
         End If
-        If lines.Count < 10 Then
+        If lines.Count <= 10 Then
             File.Delete(dataStream)
             Program.Log($"[{DevName}] removed garbage datastream file.")
         End If
@@ -594,6 +594,13 @@ Public Class devs
 
             If OS = OSType.OS_MPE Then
                 Program.Log($"Setting page for MPE")
+                firstline = -2
+                linesPerPage = 66
+                StartLine = 0
+            End If
+
+            If OS = OSType.OS_NOS278 Then
+                Program.Log($"Setting page for NOS 2.7.8")
                 firstline = -2
                 linesPerPage = 66
                 StartLine = 0
