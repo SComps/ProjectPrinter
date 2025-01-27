@@ -134,7 +134,12 @@ Public Class devs
                 ' Check for data availability or cancellation
                 If Not clientStream.DataAvailable Then
                     ' Wait for data to become available (with a small delay to avoid busy-waiting)
-                    Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
+                    If OS = OSType.OS_NOS278 Then
+                        Await Task.Delay(1000, cancellationToken) ' Block for 100ms and check again
+                    Else
+                        Program.Log($"[{DevName}] NOS 2.7.8 PSU delay waiting for more data.")
+                        Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
+                    End If
                     ' If no data available and we are inactive for too long, process the current document
                     If DateTime.Now - lastReceivedTime > inactivityTimeout AndAlso dataBuilder.Length > 0 Then
                         ' Process the complete document if we have accumulated data and timeout has occurred
@@ -148,6 +153,7 @@ Public Class devs
                         Receiving = True
                         If OS <> OSType.OS_RSTS Then
                             Program.Log($"[{DevName}] receiving data from remote host.")
+
                         Else
                             Program.Log($"[{DevName}] receiving data from low speed device for RSTS/E")
                         End If
@@ -166,7 +172,7 @@ Public Class devs
         Catch ex As OperationCanceledException
             Log("Receiving canceled.")
         Catch ex As Exception
-            Log($"Error receiving data: {ex.Message}")
+            Log($"Error receiving data: {ex.ToString}")
         End Try
     End Function
 
@@ -182,34 +188,44 @@ Public Class devs
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
         ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
+        Dim ignoreChars As Integer = 0
         For Each c As Char In documentData
             ' Output to the dst file
             swriter.Write(c)
-            Select Case c
-                Case vbCr
-                    'Pass it into the string as printable data if it's VM370
-                    'Go figure, MVS apparently uses overstrikes too.  Crazy!
-                    If OS = OSType.OS_VM370 Then currentLine.Append(c)
-                    If OS = OSType.OS_MVS38J Then currentLine.Append(c)
-                    If OS = OSType.OS_MPE Then currentLine.Append(c)
-                Case vbLf
-                    ' New Line, return to 'home' position implied.
-                    If currentLine.ToString.Trim.Length > 0 Then
+            If ignoreChars = 0 Then
+                Select Case c
+                    Case vbCr
+                        'Pass it into the string as printable data if it's VM370
+                        'Go figure, MVS apparently uses overstrikes too.  Crazy!
+                        If OS = OSType.OS_VM370 Then currentLine.Append(c)
+                        If OS = OSType.OS_MVS38J Then currentLine.Append(c)
+                        If OS = OSType.OS_MPE Then currentLine.Append(c)
+                    Case vbLf
+                        ' New Line, return to 'home' position implied.
+                        If currentLine.ToString.Trim.Length > 0 Then
+                            lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                            currentLine.Clear()
+                        Else
+                            lines.Add(" ")
+                            currentLine.Clear()
+                        End If
+                    Case vbFormFeed
+                        'New Line, Form Feed, New Line
                         lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                        lines.Add(c.ToString())
                         currentLine.Clear()
-                    Else
-                        lines.Add(" ")
-                        currentLine.Clear()
-                    End If
-                Case vbFormFeed
-                    'New Line, Form Feed, New Line
-                    lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
-                    lines.Add(c.ToString())
-                    currentLine.Clear()
-                Case Else
-                    ' Process anything as as data
-                    currentLine.Append(c)
-            End Select
+                    Case ChrW(27)
+                        ' Ignore this and the next two characters.
+                        ignoreChars = 2
+                    Case Else
+                        ' Process anything as as data
+                        currentLine.Append(c)
+                End Select
+            Else
+                ignoreChars = ignoreChars - 1
+                ' Ignoring esc sequences <esc> <byte> <byte>
+            End If
+
 
         Next
         swriter.Flush()
@@ -233,9 +249,12 @@ Public Class devs
         If lines(lines.Count - 1) = vbFormFeed Then
             lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
         End If
-
+        If lines.Count < 10 Then
+            File.Delete(dataStream)
+            Program.Log($"[{DevName}] removed garbage datastream file.")
+        End If
         ' Process the complete lines (document)
-        If lines.Any() Then
+        If (lines.Any()) And (lines.Count > 9) Then
             currentDocument.AddRange(lines)
             ProcessDocument(currentDocument)
             Program.Log($"[{DevName}] Waiting for new document.")
@@ -268,10 +287,9 @@ Public Class devs
             FileIO.FileSystem.CreateDirectory(OutDest)
         End If
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
+        Receiving = False
+        Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
         If doc.Count > 10 Then
-            'Stop
-            Receiving = False
-            Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
             If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
                 ' Lets try to eat any blank lines or form feeds before any real data
                 ' Don't do it for RSTS/E or MVS38J
@@ -310,6 +328,9 @@ Public Class devs
                 Case OSType.OS_VM370
                     Program.Log($"[{DevName}] OS type is VM/370")
                     vals = VM370_ExtractJobInformation(doc)
+                Case OSType.OS_NOS278
+                    Program.Log($"[{DevName}] OS type is NOS 2.7.8 DTcyber")
+                    vals = NOS278_ExtractJobInformation(doc)
                 Case Else
                     Program.Log($"[{DevName}] OS type is not known. [{OS}]")
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
@@ -500,6 +521,43 @@ Public Class devs
                 Exit For
             End If
         Next
+        If Not GotInfo Then
+            jobName = "UNKNOWN"
+            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = jobId.Replace("/", "-")
+            user = DevName
+        End If
+        Return (jobName, jobId, user)
+    End Function
+    Private Function NOS278_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Dim GotInfo As Boolean = False
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving NOS 2.7.8 job information.")
+        ' As near as I can tell, the first (data) line of an MPE header page has all the
+        ' job information we'll need.  If I'm wrong, somebody correct me.
+
+        For Each line In lines
+            line = line.ToUpper
+            If line.Trim.Length > 0 Then
+                ' If we hit a line that has data, the first one should be our payload
+                Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+                If parts(0) = "UJN" Then
+                    ' We have the banner page with the job data
+                    jobId = parts(2)
+                    jobName = parts(5)
+                    GotInfo = True
+                End If
+                If parts(0) = "CREATING" Then
+                    user = parts(7)
+                    GotInfo = True
+                    Exit For  ' No need to keep looking
+                End If
+            End If
+
+        Next
+
         If Not GotInfo Then
             jobName = "UNKNOWN"
             jobId = Now.ToShortTimeString.Replace(":", "-")

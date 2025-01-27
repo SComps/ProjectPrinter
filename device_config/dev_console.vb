@@ -184,7 +184,7 @@ Module dev_console
         Say(bannerLine, 0, 0, ConsoleColor.White)
         Say(CenterString($"E D I T   D E V I C E", max_Cols), 0, 1, ConsoleColor.White)
         Say(bannerLine, 0, 2, ConsoleColor.White)
-        Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370", 1, max_Rows - 2, ConsoleColor.White)
+        Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370 (5) NOS 2.7.8", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
         Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
         Say("       DEVICE NAME:", 5, 3, ConsoleColor.Cyan)
@@ -445,6 +445,7 @@ Module dev_console
         Console.WriteLine(devLine)
         Dim currLine As Integer = 7
         If StopShow > devList.Count - 1 Then StopShow = devList.Count
+        If StartShow < 0 Then StartShow = 0
         For x = StartShow To StopShow
             Dim thisDev As devs = devList(x)
             Console.SetCursorPosition(0, currLine)
@@ -488,7 +489,7 @@ Module dev_console
         Next
         Console.SetCursorPosition(0, max_Rows - 3)
         Console.ForegroundColor = ConsoleColor.White
-        Console.WriteLine("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370")
+        Console.WriteLine("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370 (5) NOS 2.7.8")
         Console.WriteLine("Paging: PgUp, PgDn or use Command UP and DOWN")
         Console.Write("Command: ADD, SAVE, EXIT or Item # to EDIT, or DELETE #")
 

@@ -28,6 +28,7 @@ Public Enum OSType
     OS_MPE
     OS_RSTS
     OS_VM370
+    OS_NOS278
 End Enum
 Module Program
 
