@@ -137,7 +137,6 @@ Public Class devs
                     If OS = OSType.OS_NOS278 Then
                         Await Task.Delay(1000, cancellationToken) ' Block for 100ms and check again
                     Else
-                        Program.Log($"[{DevName}] NOS 2.7.8 PSU delay waiting for more data.")
                         Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
                     End If
                     ' If no data available and we are inactive for too long, process the current document
