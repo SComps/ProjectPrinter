@@ -124,21 +124,17 @@ Public Class devs
 
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
-        Dim buffer(4096) As Byte ' Larger buffer for fewer ReadAsync calls
+        Dim buffer(8192) As Byte ' Larger buffer for fewer ReadAsync calls, a bit over a full page.
         Dim dataBuilder As New StringBuilder()
         Dim lastReceivedTime As DateTime = DateTime.Now
-        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(5) ' Timeout period (2 seconds)
+        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(5) ' Timeout period (5 seconds)
 
         Try
             While Not cancellationToken.IsCancellationRequested
                 ' Check for data availability or cancellation
                 If Not clientStream.DataAvailable Then
                     ' Wait for data to become available (with a small delay to avoid busy-waiting)
-                    If OS = OSType.OS_NOS278 Then
-                        Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
-                    Else
-                        Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
-                    End If
+                    Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
                     ' If no data available and we are inactive for too long, process the current document
                     If DateTime.Now - lastReceivedTime > inactivityTimeout AndAlso dataBuilder.Length > 0 Then
                         ' Process the complete document if we have accumulated data and timeout has occurred
@@ -550,6 +546,7 @@ Public Class devs
                 End If
                 If parts(0) = "CREATING" Then
                     user = parts(7)
+                    If user.Trim = "" Then user = "CONSOLE" ' Jobs sent from the console don't have a user
                     GotInfo = True
                     Exit For  ' No need to keep looking
                 End If
