@@ -4,7 +4,6 @@ Imports System.Net.Sockets
 Imports System.Reflection
 Imports System.Text
 Imports System.Threading
-Imports System.Xml.Serialization
 
 Public Class parmStruct
     Public arg As String
@@ -29,6 +28,7 @@ Public Enum OSType
     OS_MPE
     OS_RSTS
     OS_VM370
+    OS_NOS278
 End Enum
 Module Program
 
@@ -39,7 +39,7 @@ Module Program
     Public DevList As New List(Of devs)
     Public StageList As New List(Of devs)
     Public GlobalParms As New List(Of parmStruct)
-    Public configFile As String = "devices.cfg"
+    Public configFile As String = "devices.dat"
     Public cmdPort As Integer = 0
     Public logType As String = "default"
     Public pdfOrientation As String = "landscape"
@@ -50,6 +50,15 @@ Module Program
     Public WithEvents statTimer As New System.Timers.Timer
 
     Public Function Main(args As String()) As Integer
+        If args.Count > 0 Then
+            Dim assembly As Assembly = Assembly.GetExecutingAssembly()
+            Dim version As Version = assembly.GetName().Version
+            If args.Count = 1 And args(0).ToUpper = "VERSION" Then
+                Console.WriteLine("Project printer version: " & version.ToString & ". 2024 open source project.")
+                Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
+                Return 0
+            End If
+        End If
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
@@ -105,7 +114,7 @@ Module Program
         Dim ParmsProvided As Integer = 0
         If args.Length = 0 Then
             'No arguments were specified, set up the defaults
-            args = {"config:devices.cfg", "cmdPort:16000", "logType:default"}
+            args = {"config:devices.dat", "cmdPort:16000", "logType:default"}
         End If
 
         For Each p As String In args
@@ -204,31 +213,52 @@ Module Program
         Running = False
     End Sub
 
-    Public Function SerializeToXml(Of T)(obj As T) As String
-        Dim serializer As New XmlSerializer(GetType(T))
-        Using stringWriter As New StringWriter()
-            serializer.Serialize(stringWriter, obj)
-            Return stringWriter.ToString()
+    Private Function LoadDevs() As List(Of devs)
+        Dim newList As New List(Of devs)
+        ' No  serializer stuff here
+        Using rdr As New StreamReader(configFile)
+            'Is the file empty
+            If rdr.EndOfStream Then
+                Return newList
+            End If
+            Do
+                Dim thisDev As String() = rdr.ReadLine().Split("||", StringSplitOptions.TrimEntries)
+                If thisDev.Count <> 10 Then
+                    'Do nothing with the device, it's invalid... somebody mess with the file?
+                Else
+                    Dim nd As New devs
+                    nd.DevName = thisDev(0)
+                    nd.DevDescription = thisDev(1)
+                    nd.DevType = Val(thisDev(2))
+                    nd.ConnType = Val(thisDev(3))
+                    nd.DevDest = thisDev(4)
+                    nd.OS = Val(thisDev(5))
+                    If thisDev(6) = "True" Then
+                        nd.Auto = True
+                    Else
+                        nd.Auto = False
+                    End If
+                    If thisDev(7) = "True" Then
+                        nd.PDF = True
+                    Else
+                        nd.PDF = False
+                    End If
+                    nd.Orientation = Val(thisDev(8))
+                    nd.OutDest = thisDev(9)
+                    newList.Add(nd)
+                End If
+            Loop Until rdr.EndOfStream
         End Using
+        Return newList
     End Function
+
+
     Sub LoadDevices()
         ' Unload all devices.
         DevList.Clear()
         Log("Remote management clearing device list.")
         ' Reload from the file
-        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamReader(configFile)
-        Try
-            DevList = serializer.Deserialize(xmlStream)
-        Catch ex As Exception
-            Console.WriteLine($"ERR: {ex.Message}")
-            Console.WriteLine("ERR: You have no devices defined or the config file specified is corrupt.")
-            Console.WriteLine("INF: Use the device_config tool to establish your devices.")
-            Console.WriteLine($"USAGE: device_config {configFile}")
-            xmlStream.Close()
-            End
-        End Try
-        xmlStream.Close()
+        DevList = LoadDevs()
         Log("Remote management loading device list from configuration.")
         Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
         For Each d As devs In DevList
@@ -238,16 +268,15 @@ Module Program
     End Sub
 
     Sub SaveDevices()
-        ' Serialize the device list to XML
-        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim xmlStream As New StreamWriter(configFile)
-        Using sw As New StringWriter()
-            serializer.Serialize(sw, DevList)
-            xmlStream.Write(sw.ToString())
-            xmlStream.Close()
+        Using writer As New StreamWriter(configFile, append:=False)
+            For Each d As devs In DevList
+                writer.WriteLine($"{d.DevName}||{d.DevDescription}||{d.DevType}||{d.ConnType}||{d.DevDest}||{d.OS}||{d.Auto}||" &
+                    $"{d.PDF}||{d.Orientation}||{d.OutDest}")
+            Next
         End Using
-        Log("Remote management updated the device list configuration.")
+
     End Sub
+
 
     Function DeviceList() As String
         Dim out As String = ""
@@ -384,11 +413,22 @@ Module Program
             Case "GUI_RDEV"
                 ' Receives Device configuration for all devices.
             Case "RESTART"
-                'Restart
-                Dim asm As Assembly = Assembly.GetExecutingAssembly()
-                Dim asmName As String = asm.GetName().Name() & ".exe"
-                Process.Start(System.Environment.CurrentDirectory & "\" & asmName)
-                Environment.Exit(0)
+            Case "REPRINT"
+                ' Code here to reprint a job from .dst file.
+                Dim parts As String() = parsed(1).Split("--")
+                Dim myIndex As Integer = -1
+                For Each d As devs In DevList
+                    If d.DevName.ToUpper = parts(0).ToUpper Then    ' Easier to compare.
+                        myIndex = DevList.IndexOf(d)
+                    End If
+                Next
+                If myIndex > -1 Then
+                    Program.Log("Requesting reprint of " & parsed(1))
+                    DevList(myIndex).Reprint(parsed(1))
+                Else
+                    Return parsed(1) & " bad."
+                End If
+                Return ($"*** Reprint requestioned.")
         End Select
         Return String.Format(NoCommand, input)
     End Function
@@ -438,19 +478,6 @@ Module Program
         hlp.AppendLine("")
         hlp.AppendLine("As more commands become available, they will be documented here.")
         Return hlp.ToString()
-    End Function
-
-    Private Function oldGUI_SendDev()
-        ' Serialize the device list to XML
-        Dim serializer As New XmlSerializer(GetType(List(Of devs)))
-        Dim outString As String = ""
-        'Dim xmlStream As New StreamWriter()
-        Using sw As New StringWriter()
-            serializer.Serialize(sw, DevList)
-            outString = sw.ToString()
-        End Using
-        outString = outString & vbCrLf & "[[EOD]]"
-        Return outString
     End Function
 
     Private Function GUI_SendDev()

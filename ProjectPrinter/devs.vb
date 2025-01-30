@@ -1,8 +1,11 @@
 ﻿Imports System.IO
+Imports System.IO.Compression
+Imports System.Net
 Imports System.Net.Sockets
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Threading.Tasks.Dataflow
 Imports PdfSharp.Drawing
 Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
@@ -29,6 +32,8 @@ Public Class devs
     Private IsConnected As Boolean = False
     Private Receiving = False
     Private JobNumber As Integer = 0
+
+
     Public ReadOnly Property Connected As Boolean
         Get
             Return IsConnected
@@ -43,7 +48,7 @@ Public Class devs
         thisHost = splitDev(0)
         thisPort = Val(splitDev(1))
         If thisHost.Trim <> "" Then
-            remoteHost = thisHost
+            remoteHost = thisHost.Trim
         Else
             Throw (New Exception("Destination does not contain a valid hostname"))
         End If
@@ -66,22 +71,33 @@ Public Class devs
             Program.Log($"[{DevName}] Attempting to connect...")
             Await client.ConnectAsync(remoteHost, remotePort)
             Program.Log($"[{DevName}] Connection successful.")
+            If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
+                OutDest = OutDest.Substring(0, OutDest.Length - 1)
+            End If
+            If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
+                Program.Log($"[{DevName}] Created output directory {OutDest}")
+                FileIO.FileSystem.CreateDirectory(OutDest)
+            End If
             clientStream = client.GetStream()
             IsConnected = True
             ' Start receiving data
             Await ReceiveDataAsync(_cancellationTokenSource.Token)
+
         Catch ex As Exception
-            Program.Log($"[{DevName}] {ex.GetType().Name} - {ex.Message}")
+            Program.Log($"[{DevName}] unable to connect to remote host.")
             IsConnected = False
         Finally
             Try
                 Disconnect()
             Catch disconnectEx As Exception
                 Program.Log($"[{DevName}] Error during disconnection: {disconnectEx.Message}")
+                IsConnected = False
             End Try
             IsConnected = False
         End Try
     End Function
+
+
 
     Private Async Function TaskSleepAsync(seconds As Integer) As Task
         Await Task.Delay(seconds * 1000)
@@ -108,10 +124,10 @@ Public Class devs
 
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
-        Dim buffer(4096) As Byte ' Larger buffer for fewer ReadAsync calls
+        Dim buffer(8192) As Byte ' Larger buffer for fewer ReadAsync calls, a bit over a full page.
         Dim dataBuilder As New StringBuilder()
         Dim lastReceivedTime As DateTime = DateTime.Now
-        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(2) ' Timeout period (2 seconds)
+        Dim inactivityTimeout As TimeSpan = TimeSpan.FromSeconds(5) ' Timeout period (5 seconds)
 
         Try
             While Not cancellationToken.IsCancellationRequested
@@ -130,10 +146,11 @@ Public Class devs
                     ' If data is available, read it
                     If Not Receiving Then
                         Receiving = True
-                        If OS <> OSType.OS_RSTS Then
+                        If (OS <> OSType.OS_RSTS) And (OS <> OSType.OS_NOS278) Then
                             Program.Log($"[{DevName}] receiving data from remote host.")
+
                         Else
-                            Program.Log($"[{DevName}] receiving data from low speed device for RSTS/E")
+                            Program.Log($"[{DevName}] receiving data from low speed device. Sit back and relax.")
                         End If
                     End If
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
@@ -150,60 +167,89 @@ Public Class devs
         Catch ex As OperationCanceledException
             Log("Receiving canceled.")
         Catch ex As Exception
-            Log($"Error receiving data: {ex.Message}")
+            Log($"Error receiving data: {ex.ToString}")
         End Try
     End Function
 
     Private Sub ProcessDocumentData(documentData As String)
         ' Split the data into lines and process it
+        JobNumber = JobNumber + 1
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
-
-
+        Dim dataStream As String = $"{OutDest}/{DevName}--{Now.DayOfYear}--{JobNumber}.dst"
+        Dim swriter As New StreamWriter(dataStream)
+        'Stop
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
         ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
+        Dim ignoreChars As Integer = 0
         For Each c As Char In documentData
-            Select Case c
-                Case vbCr
-                    'Pass it into the string as printable data if it's VM370
-                    'Go figure, MVS apparently uses overstrikes too.  Crazy!
-                    If OS = OSType.OS_VM370 Then currentLine.Append(c)
-                    If OS = OSType.OS_MVS38J Then currentLine.Append(c)
-                Case vbLf
-                    ' New Line, return to 'home' position implied.
-                    If currentLine.ToString.Trim.Length > 0 Then
-                        lines.Add(currentLine.ToString())
+            ' Output to the dst file
+            swriter.Write(c)
+            If ignoreChars = 0 Then
+                Select Case c
+                    Case vbCr
+                        'Pass it into the string as printable data if it's VM370
+                        'Go figure, MVS apparently uses overstrikes too.  Crazy!
+                        If OS = OSType.OS_VM370 Then currentLine.Append(c)
+                        If OS = OSType.OS_MVS38J Then currentLine.Append(c)
+                        If OS = OSType.OS_MPE Then currentLine.Append(c)
+                    Case vbLf
+                        ' New Line, return to 'home' position implied.
+                        If currentLine.ToString.Trim.Length > 0 Then
+                            lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                            currentLine.Clear()
+                        Else
+                            lines.Add(" ")
+                            currentLine.Clear()
+                        End If
+                    Case vbFormFeed
+                        'New Line, Form Feed, New Line
+                        lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                        lines.Add(c.ToString())
                         currentLine.Clear()
-                    Else
-                        lines.Add(" ")
-                        currentLine.Clear()
-                    End If
-                Case vbFormFeed
-                    'New Line, Form Feed, New Line
-                    lines.Add(currentLine.ToString())
-                    lines.Add(c.ToString())
-                    currentLine.Clear()
-                Case Else
-                    ' Process anything as as data
-                    currentLine.Append(c)
-            End Select
+                    Case ChrW(27)
+                        ' Ignore this and the next two characters.
+                        ignoreChars = 2
+                    Case Else
+                        ' Process anything as as data
+                        currentLine.Append(c)
+                End Select
+            Else
+                ignoreChars = ignoreChars - 1
+                ' Ignoring esc sequences <esc> <byte> <byte>
+            End If
+
 
         Next
+        swriter.Flush()
+        swriter.Close()
 
         ' Add any remaining line data
         If currentLine.Length > 0 Then
-            lines.Add(currentLine.ToString())
+            lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+        End If
+
+        ' For some reason MPE ends jobs with <FF> then <CR>
+        If (lines(lines.Count - 2) = vbFormFeed) And (lines(lines.Count - 1) = vbCr) Then
+            Program.Log($"[{DevName}] Removing extra control characters after job completion for MPE")
+            'This is end of job data for MPE, we don't need it or we'll
+            'wind up with a blank page
+            lines.RemoveAt(lines.Count - 1)
+            lines.RemoveAt(lines.Count - 1) ' Yes we want to do it twice.
         End If
 
         ' Check to see if it completes with a FF.  (We do this anyway)
         If lines(lines.Count - 1) = vbFormFeed Then
             lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
         End If
-
+        If lines.Count <= 10 Then
+            File.Delete(dataStream)
+            Program.Log($"[{DevName}] removed garbage datastream file.")
+        End If
         ' Process the complete lines (document)
-        If lines.Any() Then
+        If (lines.Any()) And (lines.Count > 9) Then
             currentDocument.AddRange(lines)
             ProcessDocument(currentDocument)
             Program.Log($"[{DevName}] Waiting for new document.")
@@ -219,18 +265,26 @@ Public Class devs
             _cancellationTokenSource?.Cancel()
             clientStream?.Close()
             client?.Close()
-            Program.Log("Disconnected from server.")
         Catch ex As Exception
-            Program.Log($"Error during disconnection: {ex.Message}")
+            Program.Log($"[{DevName}] Error during disconnection: {ex.Message}")
         End Try
     End Sub
 
     Private Sub ProcessDocument(doc As List(Of String))
+        ' Before we do anything to this, lets dump a diagnostics file
+        ' This is the document BEFORE we do anything to clean it up.
+        'Check if there's a trailing slash or backslash
+        If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
+            OutDest = OutDest.Substring(0, OutDest.Length - 1)
+        End If
+        If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
+            Program.Log($"[{DevName}] Created output directory {OutDest}")
+            FileIO.FileSystem.CreateDirectory(OutDest)
+        End If
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
+        Receiving = False
+        Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
         If doc.Count > 10 Then
-            'Stop
-            Receiving = False
-            Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
             If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
                 ' Lets try to eat any blank lines or form feeds before any real data
                 ' Don't do it for RSTS/E or MVS38J
@@ -251,7 +305,7 @@ Public Class devs
                     idx = idx + 1
                 Loop
             End If
-            JobNumber = JobNumber + 1
+
             Dim JobID, JobName, UserID As String
             Select Case OS
                 Case OSType.OS_MVS38J
@@ -269,6 +323,9 @@ Public Class devs
                 Case OSType.OS_VM370
                     Program.Log($"[{DevName}] OS type is VM/370")
                     vals = VM370_ExtractJobInformation(doc)
+                Case OSType.OS_NOS278
+                    Program.Log($"[{DevName}] OS type is NOS 2.7.8 DTcyber")
+                    vals = NOS278_ExtractJobInformation(doc)
                 Case Else
                     Program.Log($"[{DevName}] OS type is not known. [{OS}]")
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
@@ -289,15 +346,15 @@ Public Class devs
             Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
 
 
-            Dim writer As New StreamWriter(filename)
-            For Each l As String In doc
-                l = l.Replace(vbCr, "<CR>" & vbCr)
-                l = l.Replace(vbLf, "<LF>")
-                l = l.Replace(vbFormFeed, "<FF>")
-                writer.WriteLine(l)
-            Next
-            writer.Flush()
-            writer.Close()
+            'Dim writer As New StreamWriter(filename)
+            'For Each l As String In doc
+            'l = l.Replace(vbCr, "<CR>")
+            'l = l.Replace(vbLf, "<LF>")
+            'l = l.Replace(vbFormFeed, "<FF>")
+            'writer.WriteLine(l)
+            'Next
+            'writer.Flush()
+            'writer.Close()
 
             CreatePDF(JobName, doc, pdfName)
 
@@ -433,6 +490,7 @@ Public Class devs
     End Function
 
     Private Function MPE_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Stop
         Dim GotInfo As Boolean = False
         Dim jobName As String = "UnknownJob"
         Dim jobId As String = "0000"
@@ -458,6 +516,44 @@ Public Class devs
                 Exit For
             End If
         Next
+        If Not GotInfo Then
+            jobName = "UNKNOWN"
+            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = jobId.Replace("/", "-")
+            user = DevName
+        End If
+        Return (jobName, jobId, user)
+    End Function
+    Private Function NOS278_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
+        Dim GotInfo As Boolean = False
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving NOS 2.7.8 job information.")
+        ' As near as I can tell, the first (data) line of an MPE header page has all the
+        ' job information we'll need.  If I'm wrong, somebody correct me.
+
+        For Each line In lines
+            line = line.ToUpper
+            If line.Trim.Length > 0 Then
+                ' If we hit a line that has data, the first one should be our payload
+                Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+                If parts(0) = "UJN" Then
+                    ' We have the banner page with the job data
+                    jobId = parts(2)
+                    jobName = parts(5)
+                    GotInfo = True
+                End If
+                If parts(0) = "CREATING" Then
+                    user = parts(7)
+                    If user.Trim = "" Then user = "CONSOLE" ' Jobs sent from the console don't have a user
+                    GotInfo = True
+                    Exit For  ' No need to keep looking
+                End If
+            End If
+
+        Next
+
         If Not GotInfo Then
             jobName = "UNKNOWN"
             jobId = Now.ToShortTimeString.Replace(":", "-")
@@ -493,10 +589,18 @@ Public Class devs
                 StartLine = 0
             End If
 
-            If OS = OSType.OS_MPE Then         '
-                firstline = 26
+            If OS = OSType.OS_MPE Then
+                Program.Log($"Setting page for MPE")
+                firstline = -2
                 linesPerPage = 66
-                StartLine = 3
+                StartLine = 0
+            End If
+
+            If OS = OSType.OS_NOS278 Then
+                Program.Log($"Setting page for NOS 2.7.8")
+                firstline = -2
+                linesPerPage = 66
+                StartLine = 0
             End If
 
             If OS = OSType.OS_VMS Then
@@ -540,9 +644,7 @@ Public Class devs
 
                                         ' Draw background image to cover entire page
                                         gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
-                                        'Dim darkGreen As XColor = XColor.FromArgb(220, 255, 220) ' Dark Green
-                                        'Dim lightGreen As XColor = XColor.FromArgb(255, 255, 255) ' Light Green
-                                        'DrawBackgroundTemplate(gfx, True, darkGreen, lightGreen)
+                                        'DrawGreenBarBackground(gfx, availableWidth, page.Height.Point)
                                         ' Recalculate available width for text after margins
                                         availableWidth = page.Width.Point - leftMargin - rightMargin
 
@@ -584,7 +686,7 @@ Public Class devs
             For Each line As String In outList
                 Try
                     ' Remove non-printable characters (same as before)
-                    If OS <> OSType.OS_RSTS Then
+                    If ((OS <> OSType.OS_RSTS) And (OS <> OSType.OS_MPE)) Then
                         line = regex.Replace(line, String.Empty) ' Remove non-printable characters
                         ' Replace empty lines with a space
                         line = If(String.IsNullOrEmpty(line), " ", line)
@@ -603,36 +705,43 @@ Public Class devs
                     ' Remove FF characters before drawing
                     If line <> vbFormFeed Then
                         'If the line is just a FF then don't print it, we just created a new page
-
                         ' Check if the line contains embedded CRs (not at the end)
-                        If line.Contains(Chr(13)) AndAlso Not line.EndsWith(Chr(13)) Then
+                        If line.Contains(Chr(13)) Then
                             ' Split the line by CR characters (we will handle the overstrike behavior here)
                             Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
 
                             ' Track the current starting position for drawing
                             Dim currentX As Double = leftMargin
-
-                            ' Iterate through the segments
-                            For Each segment As String In segments
-                                If Not String.IsNullOrEmpty(segment) Then
-                                    ' Draw the base text segment at the starting position
-                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-
-                                    ' Overprint the segment (with a 0.35-point horizontal offset) by printing it again
-                                    gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX + 0.35, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                End If
-                            Next
+                            If (segments.Count > 1) And (segments(1).Trim <> "") Then
+                                'Program.Log($"Segment count is {segments.Count}")
+                                ' Iterate through the segments
+                                Dim segIdx As Integer = 0
+                                Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
+                                For Each segment As String In segments
+                                    'Program.Log($"{segment}")
+                                    If Not String.IsNullOrEmpty(segment) Then
+                                        ' Draw the base text segment at the starting position
+                                        gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                        If segIdx > 0 Then
+                                            ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
+                                            gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                        End If
+                                        segIdx += 1
+                                    End If
+                                Next
+                            Else
+                                'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
+                                ' The second segment is blank, so just write it as usual.
+                                gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                            End If
                         Else
                             ' If there are no CRs, just print the line normally
                             gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                         End If
-
                         ' Move down for the next line
                         y += lineHeight
                         currentLine += 1
                     End If
-
-
                 Catch ex As Exception
                     ' Handle errors (e.g., invalid characters or drawing issues)
                 End Try
@@ -653,8 +762,77 @@ Public Class devs
 
     End Function
 
+    Public Sub Reprint(jobname As String)
+
+        Program.Log($"Reprinting job {jobname} for device {DevName}")
+        'Dim dstNameFormat = $"{OutDest}/{DevName}-{Now.DayOfYear}-{JobNumber}.dst"
+        If Not jobname.EndsWith(".dst") Then
+            jobname = jobname & ".dst"
+        End If
+        Dim fname As String = OutDest & "/" & jobname
+        If Not FileIO.FileSystem.FileExists(fname) Then
+            Program.Log($"[{DevName}] Job {fname} does not exist in {OutDest}.")
+            Return
+        End If
+        Dim dataBuilder As New StringBuilder()
+        Dim inFile As New StreamReader(fname)
+        dataBuilder.Append(inFile.ReadToEnd)
+        ProcessDocumentData(dataBuilder.ToString)
+        dataBuilder.Clear()
+        inFile.Close()
+
+    End Sub
+
     ' EXPERIMENTAL
-    Public Sub DrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
+
+    Public Sub DrawGreenBarBackground(ByVal gfx As XGraphics, ByVal pageWidth As Double, ByVal pageHeight As Double)
+        ' Define colors for the stripes
+        Dim whiteColor As XColor = XColors.White
+        Dim greenColor As XColor = XColor.FromArgb(232, 255, 232) ' Light green
+
+        ' Define stripe heights (in points, approximated from image analysis)
+        Dim whiteStripeHeight As Double = 49 * 72 / 96 ' Convert 49 pixels to points (assuming 96 DPI)
+        Dim greenStripeHeight As Double = 16 * 72 / 96 ' Convert 16 pixels to points (assuming 96 DPI)
+
+        ' Start drawing from the top of the page
+        Dim currentY As Double = 0
+
+        ' Loop to fill the page with alternating stripes
+        While currentY < pageHeight
+            ' Draw white stripe
+            gfx.DrawRectangle(New XSolidBrush(whiteColor), 0, currentY, pageWidth, whiteStripeHeight)
+            currentY += whiteStripeHeight
+
+            ' Check if we're still within the page height
+            If currentY >= pageHeight Then Exit While
+
+            ' Draw green stripe
+            gfx.DrawRectangle(New XSolidBrush(greenColor), 0, currentY, pageWidth, greenStripeHeight)
+            currentY += greenStripeHeight
+        End While
+
+        ' Optional: Draw vertical perforation marks on the left and right edges
+        Dim dotSpacing As Double = 10 * 72 / 96 ' Approximate spacing between dots in points
+        Dim dotDiameter As Double = 2 * 72 / 96 ' Approximate dot size in points
+        Dim dotColor As XColor = XColors.Gray
+
+        ' Left edge perforations
+        Dim currentDotY As Double = 0
+        While currentDotY < pageHeight
+            gfx.DrawEllipse(New XSolidBrush(dotColor), 0, currentDotY, dotDiameter, dotDiameter)
+            currentDotY += dotSpacing
+        End While
+
+        ' Right edge perforations
+        currentDotY = 0
+        Dim rightEdgeX As Double = pageWidth - dotDiameter
+        While currentDotY < pageHeight
+            gfx.DrawEllipse(New XSolidBrush(dotColor), rightEdgeX, currentDotY, dotDiameter, dotDiameter)
+            currentDotY += dotSpacing
+        End While
+    End Sub
+
+    Public Sub OldDrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
         Const feedHoleRadius As Double = 5.5
         Dim pageWidth As Double = gfx.PageSize.Width
         Dim pageHeight As Double = gfx.PageSize.Height

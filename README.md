@@ -1,5 +1,14 @@
 # ProjectPrinter
 
+1/22/25-Disabled writing of diagnostic and debugging text files with the exception of the .dst files.  The dst files are no longer parsed, but *exactly* as was received via the remote host system.  This facilitates the new "REPRINT" command via the telnet managegment interface. (port 16000).  dst filenames are semi-coded, and should not be changed.  If you do, the potential for an error during reprint is great.
+Note reprints will generate the same output and job filenames as previous.  If you're looking for two copies, be sure to rename the first .pdf before you reprint or you'll still only have one copy, except it'll be dated differently.
+
+<b>Changes to device configuration</b>
+
+Due to an issue with AOT, the XML configuration file system has been scrapped.  Now it's a custom text file readable by the applications.  It's no longer devices.cfg (to avoid confusion) but devices.dat.  You will need to reconfigure all your devices.  Note there is now an Orientation and Output Directory option for device configuration.  Orientation is still in progress, so landscape is still the only option that works (it will do landscape regardless of your setting).  Additionally it can now place the output PDF and TXT files in a specific folder or directory.  Each printer can have it's own output directory to allow you to separate jobs by printer.  When you configure this path, it can be both absolute or relative.  Leave off the final slash.  It'll strip it off if it sees it, but why bother if you don't have to.
+
+The google drive now has AOT packages for x64 linux, arm 64 and Windows 64.  There is a natively built Debian 12 package there as well; however I noticed the generic linux-x64 worked just fine too.
+
 A .NET 9.0 project written in Visual Basic .NET similar to Virtual1403.
 
 This project attempts to reasonably emulate a line printer from mainframes and mini computers
@@ -11,8 +20,7 @@ a smile.  It was developed on a Windows 10 system, however we've gotten it to bu
 linux with .NET 9, and even the Raspberry Pi 5.  It can handle a number of simultaneous 
 printers, and seems to perform reasonably well when several printers are running concurrently.
 
-The last static linked (supposedly) linux versions for x64 and raspberry pi (arm)
-can be found at this link.
+The last manual AOT builds I've done are stored in the Google drive link below.  They may or may not be built from the current commit here.
 
 [Click here to access the folder on my Google Drive](https://drive.google.com/drive/folders/1-aCWr1JMhf7zmtW9EJ3QdICv3WfYTBh0?usp=sharing)
 
@@ -39,7 +47,7 @@ executable files directory.  This will be configurable in the future.
 
 device_config is a console device configuration utility (working).
 
-ProjectPrinterManager is a WINDOWS ONLY GUI application (not working).
+ProjectPrinterManager is nowhere near working or complete, and not a part of any current build.  The code is still here however, so if you want to play with it feel free.
 
 This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
 polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
@@ -47,7 +55,8 @@ so much I use it myself, and the greenbar paper background (currently in jpg) is
 racingmars definitely deserves that credit.  
 
 A big thanks to the guys on the MPE Forever! Discord for checking things out and making some great suggestions!
-Devices are now configured to save the output in a user specified directory.
+
+If it weren't for them, I wouldn't have been motivated to research and struggle through the AOT modifications.  It was worth every nanosecond.
 
 Rudi has suggested and started work on a Portrait orientation for output as well.  I'm looking forward to seeing how that works out.  Stay tuned!
 

@@ -1,0 +1,46 @@
+name: ProjectPrinter
+on: [push]
+jobs:
+  build: 
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, ubuntu-20.04, windows-latest, ubuntu-22.04-arm]
+
+    name: Build
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 9.0.101
+      
+      - name: Prepare
+        run: mkdir publish
+      - name: Build
+        run: dotnet build /p:EnableWindowsTargeting=true
+      - name: Publish Ubuntu Latest
+        if: matrix.platform == 'ubuntu-latest'
+        run: dotnet publish --self-contained --runtime linux-x64 -c Release -o ./publish/
+      - name: Publish Ubuntu 20.04
+        if: matrix.platform == 'ubuntu-20.04'
+        run: dotnet publish --self-contained --runtime linux-x64 -c Release -o ./publish/
+      - name: Publish Windows
+        if: matrix.platform == 'windows-latest'
+        run: dotnet publish --self-contained --runtime win-x64 -c Release -o ./publish/
+      - name: Publish Linux ARM
+        if: matrix.platform == 'ubuntu-24.04-arm'
+        run: dotnet publish --self-contained --runtime linux-arm64 -c Release -o ./publish/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4.0.0
+        with:
+          name: ProjectPrinter-${{ matrix.platform }}
+          path: publish/*
+
+
+
+
