@@ -591,16 +591,16 @@ Public Class devs
 
             If OS = OSType.OS_MPE Then
                 Program.Log($"Setting page for MPE")
-                firstline = -2
+                firstline = 25
                 linesPerPage = 66
-                StartLine = 0
+                StartLine = 3
             End If
 
             If OS = OSType.OS_NOS278 Then
                 Program.Log($"Setting page for NOS 2.7.8")
-                firstline = -2
+                firstline = 25
                 linesPerPage = 66
-                StartLine = 0
+                StartLine = 3
             End If
 
             If OS = OSType.OS_VMS Then

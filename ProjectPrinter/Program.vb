@@ -254,11 +254,16 @@ Module Program
         ' Reload from the file
         DevList = LoadDevs()
         Log("Remote management loading device list from configuration.")
-        Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
-        For Each d As devs In DevList
-            Log("Initializing device: " & d.DevDescription)
-            d.Connect()
-        Next
+        If DevList.Count > 0 Then
+            Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
+            For Each d As devs In DevList
+                Log("Initializing device: " & d.DevDescription)
+                d.Connect()
+            Next
+        Else
+            Program.Log($"No devices to initialize.  Run device_config.")
+            Environment.Exit(0)
+        End If
     End Sub
 
     Sub SaveDevices()
