@@ -24,6 +24,9 @@
     <None Update="greenbar.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="greenbar_narrow.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="ibmplexmono.ttf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

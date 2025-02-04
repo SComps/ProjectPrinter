@@ -68,14 +68,14 @@ Public Class devs
         _cancellationTokenSource = New CancellationTokenSource()
 
         Try
-            Program.Log($"[{DevName}] Attempting to connect...")
+            Program.Log($"[{DevName}] Attempting to connect...",, ConsoleColor.Yellow)
             Await client.ConnectAsync(remoteHost, remotePort)
-            Program.Log($"[{DevName}] Connection successful.")
+            Program.Log($"[{DevName}] Connection successful.",, ConsoleColor.Green)
             If OutDest.EndsWith("/") Or OutDest.EndsWith("\") Then
                 OutDest = OutDest.Substring(0, OutDest.Length - 1)
             End If
             If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
-                Program.Log($"[{DevName}] Created output directory {OutDest}")
+                Program.Log($"[{DevName}] Created output directory {OutDest}",, ConsoleColor.Cyan)
                 FileIO.FileSystem.CreateDirectory(OutDest)
             End If
             clientStream = client.GetStream()
@@ -84,13 +84,13 @@ Public Class devs
             Await ReceiveDataAsync(_cancellationTokenSource.Token)
 
         Catch ex As Exception
-            Program.Log($"[{DevName}] unable to connect to remote host.")
+            Program.Log($"[{DevName}] unable to connect to remote host.",, ConsoleColor.Red)
             IsConnected = False
         Finally
             Try
                 Disconnect()
             Catch disconnectEx As Exception
-                Program.Log($"[{DevName}] Error during disconnection: {disconnectEx.Message}")
+                Program.Log($"[{DevName}] Error during disconnection: {disconnectEx.Message}",, ConsoleColor.Red)
                 IsConnected = False
             End Try
             IsConnected = False
@@ -104,7 +104,6 @@ Public Class devs
     End Function
 
     Private Function DataIsAvailable() As Boolean
-        'Program.Log($"{DevName} {clientStream.DataAvailable.ToString}")
         Return clientStream.DataAvailable
     End Function
     Private Async Function WaitForMoreDataAsync(dataAvailableCondition As Func(Of Boolean), timeoutMilliseconds As Integer, checkIntervalMilliseconds As Integer) As Task(Of Boolean)
@@ -146,11 +145,11 @@ Public Class devs
                     ' If data is available, read it
                     If Not Receiving Then
                         Receiving = True
-                        If (OS <> OSType.OS_RSTS) And (OS <> OSType.OS_NOS278) Then
-                            Program.Log($"[{DevName}] receiving data from remote host.")
+                        If ((OS <> OSType.OS_RSTS) And (OS <> OSType.OS_NOS278)) Then
+                            Program.Log($"[{DevName}] receiving data from remote host.",, ConsoleColor.Yellow)
 
                         Else
-                            Program.Log($"[{DevName}] receiving data from low speed device. Sit back and relax.")
+                            Program.Log($"[{DevName}] receiving data from low speed device. Sit back and relax.",, ConsoleColor.Yellow)
                         End If
                     End If
                     Dim recd As Integer = Await clientStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
@@ -167,7 +166,7 @@ Public Class devs
         Catch ex As OperationCanceledException
             Log("Receiving canceled.")
         Catch ex As Exception
-            Log($"Error receiving data: {ex.ToString}")
+            Log($"Error receiving data: {ex.ToString}",, ConsoleColor.Red)
         End Try
     End Function
 
@@ -266,7 +265,7 @@ Public Class devs
             clientStream?.Close()
             client?.Close()
         Catch ex As Exception
-            Program.Log($"[{DevName}] Error during disconnection: {ex.Message}")
+            Program.Log($"[{DevName}] Error during disconnection: {ex.Message}",, ConsoleColor.Red)
         End Try
     End Sub
 
@@ -278,12 +277,12 @@ Public Class devs
             OutDest = OutDest.Substring(0, OutDest.Length - 1)
         End If
         If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
-            Program.Log($"[{DevName}] Created output directory {OutDest}")
+            Program.Log($"[{DevName}] Created output directory {OutDest}",, ConsoleColor.Yellow)
             FileIO.FileSystem.CreateDirectory(OutDest)
         End If
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         Receiving = False
-        Program.Log($"[{DevName}] received {doc.Count} lines from remote host.")
+        Program.Log($"[{DevName}] received {doc.Count} lines from remote host.",, ConsoleColor.Cyan)
         If doc.Count > 10 Then
             If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
                 ' Lets try to eat any blank lines or form feeds before any real data
@@ -309,25 +308,25 @@ Public Class devs
             Dim JobID, JobName, UserID As String
             Select Case OS
                 Case OSType.OS_MVS38J
-                    Program.Log($"[{DevName}] OS type os MVS 3.8J OS/VS2")
+                    Program.Log($"[{DevName}] OS type os MVS 3.8J OS/VS2",, ConsoleColor.Green)
                     vals = MVS38J_ExtractJobInformation(doc)
                 Case OSType.OS_VMS
-                    Program.Log($"[{DevName}] OS type is VMS")
+                    Program.Log($"[{DevName}] OS type is VMS",, ConsoleColor.Green)
                     vals = VMS_ExtractJobInformation(doc)
                 Case OSType.OS_MPE
-                    Program.Log($"[{DevName}] OS type is MPE")
+                    Program.Log($"[{DevName}] OS type is MPE",, ConsoleColor.Green)
                     vals = MPE_ExtractJobInformation(doc)
                 Case OSType.OS_RSTS
-                    Program.Log($"[{DevName}] OS type is RSTS/E")
+                    Program.Log($"[{DevName}] OS type is RSTS/E",, ConsoleColor.Green)
                     vals = RSTS_ExtractJobInformation(doc)
                 Case OSType.OS_VM370
-                    Program.Log($"[{DevName}] OS type is VM/370")
+                    Program.Log($"[{DevName}] OS type is VM/370",, ConsoleColor.Green)
                     vals = VM370_ExtractJobInformation(doc)
                 Case OSType.OS_NOS278
-                    Program.Log($"[{DevName}] OS type is NOS 2.7.8 DTcyber")
+                    Program.Log($"[{DevName}] OS type is NOS 2.7.8 DTcyber",, ConsoleColor.Green)
                     vals = NOS278_ExtractJobInformation(doc)
                 Case Else
-                    Program.Log($"[{DevName}] OS type is not known. [{OS}]")
+                    Program.Log($"[{DevName}] OS type is not known. [{OS}]",, ConsoleColor.Yellow)
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
             End Select
 
@@ -339,7 +338,7 @@ Public Class devs
                 OutDest = OutDest.Substring(0, OutDest.Length - 1)
             End If
             If Not FileIO.FileSystem.DirectoryExists(OutDest) Then
-                Program.Log($"[{DevName}] Created output directory {OutDest}")
+                Program.Log($"[{DevName}] Created output directory {OutDest}",, ConsoleColor.Yellow)
                 FileIO.FileSystem.CreateDirectory(OutDest)
             End If
             Dim filename As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.txt"
@@ -572,9 +571,13 @@ Public Class devs
             Dim doc As New PdfSharp.Pdf.PdfDocument
             GlobalFontSettings.FontResolver = New ChainprinterFontResolver()
             doc.Info.Title = title
-
-            ' Initialize background image (greenbar.jpg) to cover entire page
-            Dim bkgrd As XImage = XImage.FromFile("greenbar.jpg")
+            Dim bkgrd As XImage
+            If Orientation <= 1 Then
+                ' Initialize background image (greenbar.jpg) to cover entire page
+                bkgrd = XImage.FromFile("greenbar.jpg")
+            Else
+                bkgrd = XImage.FromFile("greenbar_narrow.jpg")
+            End If
 
             If OS = OSType.OS_MVS38J Then
                 Program.Log($"Setting page for MVS 3.8J")
@@ -633,13 +636,19 @@ Public Class devs
             Dim InitializeNewPage = Sub()
                                         ' Initialize the page
                                         page = doc.AddPage()
-                                        page.Orientation = PdfSharp.PageOrientation.Landscape
+                                        If Orientation <= 1 Then
+                                            page.Orientation = PdfSharp.PageOrientation.Landscape
+                                        Else
+                                            page.Orientation = PdfSharp.PageOrientation.Portrait
+                                        End If
 
                                         ' Initialize graphics context for this page
                                         gfx = XGraphics.FromPdfPage(page)
 
                                         ' Draw background image to cover entire page
-                                        gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                        If (Orientation = 0) Or (Orientation = 2) Then
+                                            gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                        End If
                                         'DrawGreenBarBackground(gfx, availableWidth, page.Height.Point)
                                         ' Recalculate available width for text after margins
                                         availableWidth = page.Width.Point - leftMargin - rightMargin
@@ -650,7 +659,11 @@ Public Class devs
                                         ' Calculate font size based on available width to fit 132 characters per line
                                         ' Measure the width of a single character (e.g., "W") at font size to estimate scaling
                                         Dim charWidth As Double = gfx.MeasureString("W", font).Width
-                                        fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                        If Orientation <= 1 Then
+                                            fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                        Else
+                                            fontSize = availableWidth / (charWidth * 80) * 12
+                                        End If
 
                                         ' Update font with the correct size
                                         font = New XFont("Chainprinter", fontSize)
@@ -741,14 +754,14 @@ Public Class devs
 
             ' Save the document and return the output file
             Dim outputFile As String = filename
-            Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.")
+            Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.",, ConsoleColor.Green)
             doc.Save(outputFile)
             doc.Close()
 
             ' Ensure we properly end the function
             Return outputFile
         Catch ex As Exception
-            Program.Log($"Error: {ex.Message}")
+            Program.Log($"Error: {ex.Message}",, ConsoleColor.Red)
         End Try
         Return "" ' Just to quiet down the IDE
 
@@ -756,14 +769,14 @@ Public Class devs
 
     Public Sub Reprint(jobname As String)
 
-        Program.Log($"Reprinting job {jobname} for device {DevName}")
+        Program.Log($"Reprinting job {jobname} for device {DevName}",, ConsoleColor.Green)
         'Dim dstNameFormat = $"{OutDest}/{DevName}-{Now.DayOfYear}-{JobNumber}.dst"
         If Not jobname.EndsWith(".dst") Then
             jobname = jobname & ".dst"
         End If
         Dim fname As String = OutDest & "/" & jobname
         If Not FileIO.FileSystem.FileExists(fname) Then
-            Program.Log($"[{DevName}] Job {fname} does not exist in {OutDest}.")
+            Program.Log($"[{DevName}] Job {fname} does not exist in {OutDest}.",, ConsoleColor.Red)
             Return
         End If
         Dim dataBuilder As New StringBuilder()

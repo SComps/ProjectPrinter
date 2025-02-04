@@ -45,19 +45,20 @@ Module Program
     Public RemoteCommand As TcpListener
 
     Public Running As Boolean = True
-
+    Public logOut As Boolean = False
     Public WithEvents statTimer As New System.Timers.Timer
 
     Public Function Main(args As String()) As Integer
+        Dim assembly As Assembly = Assembly.GetExecutingAssembly()
+        Dim version As Version = assembly.GetName().Version
         If args.Count > 0 Then
-            Dim assembly As Assembly = Assembly.GetExecutingAssembly()
-            Dim version As Version = assembly.GetName().Version
             If args.Count = 1 And args(0).ToUpper = "VERSION" Then
-                Console.WriteLine("Project printer version: " & version.ToString & ". 2024 open source project.")
+                Console.WriteLine("Project printer version: " & version.ToString & ". 2024,2025 As open source.")
                 Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
                 Return 0
             End If
         End If
+        Log($"ProjectPrinter version {Version.ToString}. 2024,2025 As open source. No warranties, express or implied.",, ConsoleColor.DarkRed)
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
@@ -177,7 +178,11 @@ Module Program
         'Stop
     End Sub
 
-    Sub Log(errMsg As String, Optional term As Boolean = False)
+    Sub Log(errMsg As String, Optional term As Boolean = False, Optional FColor As Integer = ConsoleColor.White)
+        Do While logOut = True
+            Thread.Sleep(10)
+        Loop
+        logOut = True
         If logType = "" Then
             ' It's not defined, so assume default
             logType = "default"
@@ -185,7 +190,10 @@ Module Program
 
         Select Case logType
             Case "default"
-                Console.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
+                Console.Write(DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)") & " ")
+                Console.ForegroundColor = FColor
+                Console.WriteLine(errMsg)
+                Console.ResetColor()
             Case "none"
                 ' Requested silent operation
             Case Else
@@ -196,14 +204,14 @@ Module Program
                 sw.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
                 sw.Close()
         End Select
-
+        logOut = False
         ' If we're instructed to terminate, do so here.
         If term Then ShutDown()
     End Sub
 
     Sub ShutDown()
         ' Do everything needed to terminate the process here
-        Log("Shutdown requested")
+        Log("Shutdown requested",, ConsoleColor.Red)
         Running = False
     End Sub
 
@@ -250,18 +258,18 @@ Module Program
     Sub LoadDevices()
         ' Unload all devices.
         DevList.Clear()
-        Log("Remote management clearing device list.")
+        Log("Clearing device list.",, ConsoleColor.Yellow)
         ' Reload from the file
         DevList = LoadDevs()
-        Log("Remote management loading device list from configuration.")
+        Log("Loading device list from configuration.",, ConsoleColor.Yellow)
         If DevList.Count > 0 Then
-            Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count))
+            Log(String.Format("Attempting to initialize {0} device(s)", DevList.Count),, ConsoleColor.Yellow)
             For Each d As devs In DevList
-                Log("Initializing device: " & d.DevDescription)
+                Log("Initializing device: " & d.DevDescription,, ConsoleColor.Green)
                 d.Connect()
             Next
         Else
-            Program.Log($"No devices to initialize.  Run device_config.")
+            Program.Log($"No devices to initialize.  Run device_config.",, ConsoleColor.Red)
             Environment.Exit(0)
         End If
     End Sub
