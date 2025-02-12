@@ -574,9 +574,9 @@ Public Class devs
             Dim bkgrd As XImage
             If Orientation <= 1 Then
                 ' Initialize background image (greenbar.jpg) to cover entire page
-                bkgrd = XImage.FromFile("greenbar.jpg")
+                bkgrd = XImage.FromFile("greenbar_new.jpg")
             Else
-                bkgrd = XImage.FromFile("greenbar_narrow.jpg")
+                bkgrd = XImage.FromFile("greenbar_new.jpg")
             End If
 
             If OS = OSType.OS_MVS38J Then
@@ -711,6 +711,11 @@ Public Class devs
                     If line <> vbFormFeed Then
                         'If the line is just a FF then don't print it, we just created a new page
                         ' Check if the line contains embedded CRs (not at the end)
+                        If Orientation > 1 Then
+                            If line.Length > 80 Then line = line.Substring(0, 80)    ' Cut off the line
+                        Else
+                            If line.Length > 132 Then line = line.Substring(0, 132)   ' Cut off the line
+                        End If
                         If line.Contains(Chr(13)) Then
                             ' Split the line by CR characters (we will handle the overstrike behavior here)
                             Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
