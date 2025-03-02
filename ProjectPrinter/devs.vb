@@ -110,6 +110,7 @@ Public Class devs
                 If Not clientStream.DataAvailable Then
                     ' Wait for data to become available (with a small delay to avoid busy-waiting)
                     Await Task.Delay(100, cancellationToken) ' Block for 100ms and check again
+                    clientStream.WriteByte(0)
                     ' If no data available and we are inactive for too long, process the current document
                     If DateTime.Now - lastReceivedTime > inactivityTimeout AndAlso dataBuilder.Length > 0 Then
                         ' Process the complete document if we have accumulated data and timeout has occurred
@@ -142,7 +143,11 @@ Public Class devs
         Catch ex As OperationCanceledException
             Log("Receiving canceled.")
         Catch ex As Exception
-            Log($"Error receiving data: {ex.ToString}",, ConsoleColor.Red)
+            If ex.HResult = -2146232800 Then
+                Log($"[{DevDest}] Disconnected from remote host.",, ConsoleColor.Red)
+            Else
+                Log($"Error receiving data: [{ex.HResult}] {ex.ToString}",, ConsoleColor.Red)
+            End If
         End Try
     End Function
 
