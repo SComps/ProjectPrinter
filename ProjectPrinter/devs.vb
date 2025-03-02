@@ -97,30 +97,6 @@ Public Class devs
         End Try
     End Function
 
-
-
-    Private Async Function TaskSleepAsync(seconds As Integer) As Task
-        Await Task.Delay(seconds * 1000)
-    End Function
-
-    Private Function DataIsAvailable() As Boolean
-        Return clientStream.DataAvailable
-    End Function
-    Private Async Function WaitForMoreDataAsync(dataAvailableCondition As Func(Of Boolean), timeoutMilliseconds As Integer, checkIntervalMilliseconds As Integer) As Task(Of Boolean)
-        Dim elapsed As Integer = 0
-
-        While elapsed < timeoutMilliseconds
-            If dataAvailableCondition() Then
-                Return True ' Data is available, exit early.
-            End If
-
-            Await Task.Delay(checkIntervalMilliseconds) ' Wait before checking again.
-            elapsed += checkIntervalMilliseconds
-        End While
-
-        Return False ' Timed out waiting for data.
-    End Function
-
     ' Continuously receives data from the server
     Private Async Function ReceiveDataAsync(cancellationToken As CancellationToken) As Task
         Dim buffer(8192) As Byte ' Larger buffer for fewer ReadAsync calls, a bit over a full page.
@@ -363,10 +339,6 @@ Public Class devs
         End If
     End Sub
 
-    Private Function IsTrailerPage(lines As String()) As Boolean    'VMS trailer page
-        ' Check if the trailer contains "COMPLETED ON" indicating job completion (VMS)
-        Return lines.Any(Function(line) line.Contains("COMPLETED ON"))
-    End Function
 
     Private Function MVS38J_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
         Dim jobName As String = "UnknownJob"
