@@ -27,6 +27,8 @@ The last manual AOT builds I've done are stored in the Google drive link below. 
 
 [Click here to access the folder on my Google Drive](https://drive.google.com/drive/folders/1-aCWr1JMhf7zmtW9EJ3QdICv3WfYTBh0?usp=sharing)
 
+While there are a bunch of other unrelated files on the google drive, you may play with anything there that interests you.  Anything you get from there is explicitly your own responsibility.  Chances are there will be no further development on any of that stuff, and you're essentially on your own.
+
 
 There's three projects in this repo.  
 
