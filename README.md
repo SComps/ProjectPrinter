@@ -49,6 +49,8 @@ executable files directory.  This will be configurable in the future.
                                 MVS 3.8J now works, and collects job information
                                 Thanks to Rudi for helping me out with testing the
                                 overstrike capabilities.
+                                
+                          NOS 2.7.8 (Control Data Corp.)
 
 device_config is a console device configuration utility (working).
 
