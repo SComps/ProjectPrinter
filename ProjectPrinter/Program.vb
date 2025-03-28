@@ -10,6 +10,11 @@ Public Class parmStruct
     Public value As String
 End Class
 
+Public Class LogEntry
+    Public TimeStamp As String
+    Public errMsg As String
+    Public FColor As Integer
+End Class
 Public Enum DvType
     DT_PRINTER
     DT_READER
@@ -42,10 +47,13 @@ Module Program
     Public configFile As String = "devices.dat"
     Public cmdPort As Integer = 0
     Public logType As String = "default"
+    Public logList As New List(Of LogEntry) 'Holds the last 500 log messages
     Public RemoteCommand As TcpListener
 
     Public Running As Boolean = True
     Public logOut As Boolean = False
+    Public ShowPanel As Boolean = False
+    Public LastScreen As Integer = 0   '0 = Log, 1 = Panel
     Public WithEvents statTimer As New System.Timers.Timer
 
     Public Function Main(args As String()) As Integer
@@ -86,11 +94,47 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         While Running
+            If Console.KeyAvailable Then
+                Dim thisKey As ConsoleKeyInfo = Console.ReadKey
+                If thisKey.Key = ConsoleKey.Escape Then
+                    If Not ShowPanel Then 'Show the panel
+                        DisplayPanel()
+                        ShowPanel = True
+                    Else
+                        DisplayLog()
+                        ShowPanel = False
+                    End If
+                End If
+            End If
             Thread.Sleep(300)
         End While
         ShutDown()
         Return 0
     End Function
+
+    Sub DisplayPanel()
+        If LastScreen = 0 Then
+            Console.Clear()
+        End If
+        Console.SetCursorPosition(0, 0)
+        Console.WriteLine($"ProjectPrinter Device Dashboard")
+        Console.SetCursorPosition(0, Console.WindowHeight)
+        Console.Write("<Esc> Return to log display")
+    End Sub
+
+    Sub DisplayLog()
+        Console.Clear()
+        Console.Write(" ")
+        Dim logEntries As Integer = logList.Count - 1
+        Dim starting As Integer = logEntries - Console.WindowHeight
+        If starting < 0 Then starting = 0
+        For i = starting To logEntries
+            Console.Write(logList(i).TimeStamp & " ")
+            Console.ForegroundColor = logList(i).FColor
+            Console.WriteLine(logList(i).errMsg)
+            Console.ResetColor()
+        Next
+    End Sub
 
     Sub CheckTimer(source As Object, args As EventArgs) Handles statTimer.Elapsed
         For Each d As devs In DevList
@@ -178,9 +222,29 @@ Module Program
         'Stop
     End Sub
 
+    Private Function RotateLog(TimeStamp As String, errMsg As String, Fcolor As Integer) As List(Of LogEntry)
+        Dim tempLog As New List(Of LogEntry)
+        'We'll keep up to 500 lines of log, just in case.
+        Dim lastLog As Integer = logList.Count
+        Dim starting As Integer = 0
+        If lastLog > 499 Then
+            starting = 1
+        End If
+        For i = starting To (logList.Count - 1)
+            tempLog.Add(logList(i))
+        Next
+        Debug.Print(tempLog.Count)
+        Dim newEntry As New LogEntry
+        newEntry.TimeStamp = TimeStamp
+        newEntry.errMsg = errMsg
+        newEntry.FColor = Fcolor
+        tempLog.Add(newEntry)
+        Debug.Print("--->" & tempLog.Count)
+        Return tempLog
+    End Function
     Sub Log(errMsg As String, Optional term As Boolean = False, Optional FColor As Integer = ConsoleColor.White)
         Do While logOut = True
-            Thread.Sleep(10)
+            Thread.Sleep(100)
         Loop
         logOut = True
         If logType = "" Then
@@ -190,10 +254,15 @@ Module Program
 
         Select Case logType
             Case "default"
-                Console.Write(DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)") & " ")
-                Console.ForegroundColor = FColor
-                Console.WriteLine(errMsg)
-                Console.ResetColor()
+                Dim timeStamp As String = DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)")
+                If Not ShowPanel Then
+                    Console.Write(timeStamp & " ")
+                    Console.ForegroundColor = FColor
+                    Console.WriteLine(errMsg)
+                    Console.ResetColor()
+                End If
+                logList = RotateLog(timestamp, errMsg, FColor)
+                Debug.Print("loglist-->" & logList.Count)
             Case "none"
                 ' Requested silent operation
             Case Else
@@ -205,6 +274,7 @@ Module Program
                 sw.Close()
         End Select
         logOut = False
+
         ' If we're instructed to terminate, do so here.
         If term Then ShutDown()
     End Sub

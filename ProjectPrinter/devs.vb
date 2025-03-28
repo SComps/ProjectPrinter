@@ -358,14 +358,16 @@ Public Class devs
                     If parts(0).StartsWith("****") Then
                         ' Usually a pretty good job information line for MVS.
                         ' But lets make sure we have END and JOB following it.
-                        If (parts(1) = "END") And (parts(2) = "JOB") Then
+                        If (parts(1) = "END") And
+                            ((parts(2) = "JOB") Or
+                            (parts(2) = "TSU")) Then
                             jobId = parts(3)
                             jobName = parts(4)
                             user = parts((parts.Count - 7))
                         End If
                     End If
                 Catch ex As Exception
-                    ' Don't do anything.
+                    'Log($"MVS38J EXTRACT: {ex.Message}")
                 End Try
             End If
         Next
@@ -558,9 +560,9 @@ Public Class devs
 
             If OS = OSType.OS_MVS38J Then
                 Program.Log($"Setting page for MVS 3.8J")
-                firstline = 16
+                firstline = 45
                 linesPerPage = 66
-                StartLine = 0
+                StartLine = 5
             End If
 
             If OS = OSType.OS_RSTS Then

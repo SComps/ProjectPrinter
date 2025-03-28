@@ -4,8 +4,8 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.3.2.592</AssemblyVersion>
-    <FileVersion>2025.3.2.592</FileVersion>
+    <AssemblyVersion>2025.3.19.626</AssemblyVersion>
+    <FileVersion>2025.3.19.626</FileVersion>
 	  <PublishAot>true</PublishAot>
 	  <TrimMode>partial</TrimMode>
   </PropertyGroup>
@@ -25,6 +25,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="greenbar_narrow.jpg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="greenbar_new.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="ibmplexmono.ttf">
