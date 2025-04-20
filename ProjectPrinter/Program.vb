@@ -36,7 +36,7 @@ Public Enum OSType
     OS_NOS278
 End Enum
 Module Program
-
+    ' Updated for new install of VS2022 
     Const parmDefined As String = "Defined parameter '{0}' as '{1}'"
     Const parmError As String = "Parameter error '{0]' is defined without a value"
     Const parmInvalid As String = "Invalid parameter {0}:{1}"
