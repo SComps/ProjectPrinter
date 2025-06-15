@@ -1,4 +1,5 @@
-﻿Imports System.IO
+﻿Imports System.ComponentModel
+Imports System.IO
 Imports System.IO.Compression
 Imports System.Net
 Imports System.Net.Sockets
@@ -7,6 +8,7 @@ Imports System.Text.RegularExpressions
 Imports System.Threading
 Imports System.Threading.Tasks.Dataflow
 Imports PdfSharp.Drawing
+Imports PdfSharp.Events
 Imports PdfSharp.Fonts
 Imports PdfSharp.Pdf
 
@@ -157,7 +159,7 @@ Public Class devs
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
         Dim dataStream As String = $"{OutDest}/{DevName}--{Now.DayOfYear}--{JobNumber}.dst"
-        Dim swriter As New StreamWriter(dataStream)
+        'Dim swriter As New StreamWriter(dataStream)
         'Stop
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
@@ -166,7 +168,7 @@ Public Class devs
         Dim ignoreChars As Integer = 0
         For Each c As Char In documentData
             ' Output to the dst file
-            swriter.Write(c)
+            'swriter.Write(c)
             If ignoreChars = 0 Then
                 Select Case c
                     Case vbCr
@@ -203,8 +205,8 @@ Public Class devs
 
 
         Next
-        swriter.Flush()
-        swriter.Close()
+        'swriter.Flush()
+        'swriter.Close()
 
         ' Add any remaining line data
         If currentLine.Length > 0 Then
@@ -306,6 +308,9 @@ Public Class devs
                 Case OSType.OS_NOS278
                     Program.Log($"[{DevName}] OS type is NOS 2.7.8 DTcyber",, ConsoleColor.Green)
                     vals = NOS278_ExtractJobInformation(doc)
+                Case OSType.OS_VMSP
+                    Program.Log($"[{DevName}] OS type is VM/SP",, ConsoleColor.Green)
+                    vals = VMSP_ExtractJobInformation(doc)
                 Case Else
                     Program.Log($"[{DevName}] OS type is not known. [{OS}]",, ConsoleColor.Yellow)
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
@@ -394,6 +399,32 @@ Public Class devs
                 If ((parts(0) = "SPOOL") And (parts(1) = "FILE") And (parts(2) = "ID")) Then
                     jobId = parts(3)
                     Program.Log($"[{DevName}] VM370 Spool ID {parts(3)}")
+                End If
+            End If
+        Next
+        Return (jobName, jobId, user)
+    End Function
+
+    Private Function VMSP_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving VM/SP job information.")
+        For Each line As String In lines
+            line = line.ToUpper.Trim
+            Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+            If parts.Count > 4 Then
+                If ((parts(2) = "USERID") And (parts(3) = "ORIGIN")) Then
+                    Program.Log($"[{DevName}] Determined VM370 UserId: {parts(0)}")
+                    user = parts(0)
+                End If
+                If (parts(2) = "FILENAME" And parts(3) = "FILETYPE") Then
+                    jobName = $"{parts(0)}.{parts(1)}"
+                    Program.Log($"[{DevName}] Setting Jobname to {jobName}")
+                End If
+                If (parts(2) = "SPOOLID") Then
+                    jobId = parts(0)
+                    Program.Log($"[{DevName}] Spool ID {jobId}")
                 End If
             End If
         Next
@@ -553,9 +584,9 @@ Public Class devs
             Dim bkgrd As XImage
             If Orientation <= 1 Then
                 ' Initialize background image (greenbar.jpg) to cover entire page
-                bkgrd = XImage.FromFile("greenbar_new.jpg")
+                bkgrd = XImage.FromFile("greenbar.jpg")
             Else
-                bkgrd = XImage.FromFile("greenbar_new.jpg")
+                bkgrd = XImage.FromFile("greenbar.jpg")
             End If
 
             If OS = OSType.OS_MVS38J Then
@@ -566,6 +597,7 @@ Public Class devs
             End If
 
             If OS = OSType.OS_RSTS Then
+                Program.Log($"Setting page for RSTS/E")
                 firstline = 27
                 linesPerPage = 66
                 StartLine = 0
@@ -586,15 +618,23 @@ Public Class devs
             End If
 
             If OS = OSType.OS_VMS Then
+                Program.Log($"Setting page for VMS")
                 firstline = 25
                 linesPerPage = 66
                 StartLine = 3
             End If
 
             If OS = OSType.OS_VM370 Then
+                Program.Log($"Setting page for VM/370CE")
                 firstline = 7
                 linesPerPage = 66
                 StartLine = 2
+            End If
+            If OS = OSType.OS_VMSP Then
+                Program.Log($"Setting page for VM/SP")
+                firstline = 7
+                linesPerPage = 66
+                StartLine = 0
             End If
 
             ' Define margins (1/2 inch for left and right margins)
@@ -737,6 +777,7 @@ Public Class devs
             Next
 
             ' Save the document and return the output file
+            'Program.Log($"[{DevName}] skipping output file to save space on device.",, ConsoleColor.White)
             Dim outputFile As String = filename
             Log($"Wrote {doc.PageCount} pages for {title} to {outputFile}.",, ConsoleColor.Green)
             doc.Save(outputFile)

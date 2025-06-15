@@ -28,12 +28,13 @@ End Enum
 
 
 Public Enum OSType
-    OS_MVS38J
-    OS_VMS
-    OS_MPE
-    OS_RSTS
-    OS_VM370
-    OS_NOS278
+    OS_MVS38J           ' IBM MVS 3.8J or OSVS2
+    OS_VMS              ' VAX and ALPHA VMS/OpenVMS
+    OS_MPE              ' HP 3000 MPE
+    OS_RSTS             ' DEC PDP-11 RSTS/E
+    OS_VM370            ' IBM VM370 (VM370CE Community Edition) Special header pages
+    OS_NOS278           ' CDC NOS 2.7.8
+    OS_VMSP             ' IBM VM/SP (including HPO)
 End Enum
 Module Program
     ' Updated for new install of VS2022 4-22-25
