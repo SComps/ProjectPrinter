@@ -95,18 +95,7 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         While Running
-            If Console.KeyAvailable Then
-                Dim thisKey As ConsoleKeyInfo = Console.ReadKey
-                If thisKey.Key = ConsoleKey.Escape Then
-                    If Not ShowPanel Then 'Show the panel
-                        DisplayPanel()
-                        ShowPanel = True
-                    Else
-                        DisplayLog()
-                        ShowPanel = False
-                    End If
-                End If
-            End If
+
             Thread.Sleep(300)
         End While
         ShutDown()
