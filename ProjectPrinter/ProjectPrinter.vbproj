@@ -4,13 +4,17 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ProjectPrinter</RootNamespace>
     <TargetFramework>net9.0</TargetFramework>
-    <AssemblyVersion>2025.3.19.626</AssemblyVersion>
-    <FileVersion>2025.3.19.626</FileVersion>
+    <AssemblyVersion>2025.6.15.1</AssemblyVersion>
+    <FileVersion>2025.6.15.1</FileVersion>
 	  <PublishAot>true</PublishAot>
 	  <TrimMode>partial</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.7.115">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="PDFsharp" Version="6.1.1" />
   </ItemGroup>
 
