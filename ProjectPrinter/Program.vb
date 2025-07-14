@@ -35,6 +35,7 @@ Public Enum OSType
     OS_VM370            ' IBM VM370 (VM370CE Community Edition) Special header pages
     OS_NOS278           ' CDC NOS 2.7.8
     OS_VMSP             ' IBM VM/SP (including HPO)
+    OS_TANDYXENIX       ' Tandy XENIX
 End Enum
 Module Program
     ' Updated for new install of VS2022 4-22-25

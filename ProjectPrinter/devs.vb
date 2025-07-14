@@ -154,21 +154,30 @@ Public Class devs
     End Function
 
     Private Sub ProcessDocumentData(documentData As String)
+        'This really sucks but Tandy XENIX needs 6 line feeds for the first page.  I hate that.
+        If OS = OSType.OS_TANDYXENIX Then
+            documentData = vbCrLf & vbCrLf & vbCrLf & documentData
+        End If
         ' Split the data into lines and process it
         JobNumber = JobNumber + 1
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
-        Dim dataStream As String = $"{OutDest}/{DevName}--{Now.DayOfYear}--{JobNumber}.dst"
-        'Dim swriter As New StreamWriter(dataStream)
-        'Stop
+        Dim dataStream As String = $"{OutDest}/{DevName}--{Now.Ticks}--{JobNumber}.dst"
+        Dim swriter As New StreamWriter(dataStream)
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
         ' FF = Advance to TOP  OF FORM (That'll be preserved but on it's own line)
         Dim ignoreChars As Integer = 0
+        'Stop
         For Each c As Char In documentData
             ' Output to the dst file
-            'swriter.Write(c)
+            Dim o As String = c
+            o = o.Replace(vbCr, "<CR>")
+            o = o.Replace(vbLf, "<LF>")
+            o = o.Replace(vbFormFeed, "<FF>")
+            swriter.Write(o)
+            Debug.Write(o)
             If ignoreChars = 0 Then
                 Select Case c
                     Case vbCr
@@ -177,10 +186,15 @@ Public Class devs
                         If OS = OSType.OS_VM370 Then currentLine.Append(c)
                         If OS = OSType.OS_MVS38J Then currentLine.Append(c)
                         If OS = OSType.OS_MPE Then currentLine.Append(c)
+                        If OS = OSType.OS_TANDYXENIX Then
+                            currentLine.Append(vbCrLf)
+                            lines.Add(currentLine.ToString())
+                            currentLine.Clear()
+                        End If
                     Case vbLf
                         ' New Line, return to 'home' position implied.
                         If currentLine.ToString.Trim.Length > 0 Then
-                            lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                            lines.Add(currentLine.ToString())
                             currentLine.Clear()
                         Else
                             lines.Add(" ")
@@ -188,7 +202,7 @@ Public Class devs
                         End If
                     Case vbFormFeed
                         'New Line, Form Feed, New Line
-                        lines.Add(currentLine.ToString().Replace(vbCrLf, vbLf))
+                        lines.Add(currentLine.ToString())
                         lines.Add(c.ToString())
                         currentLine.Clear()
                     Case ChrW(27)
@@ -205,8 +219,8 @@ Public Class devs
 
 
         Next
-        'swriter.Flush()
-        'swriter.Close()
+        swriter.Flush()
+        swriter.Close()
 
         ' Add any remaining line data
         If currentLine.Length > 0 Then
@@ -268,26 +282,27 @@ Public Class devs
         Program.Log($"[{DevName}] received {doc.Count} lines from remote host.",, ConsoleColor.Cyan)
         If doc.Count > 10 Then
             If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
-                ' Lets try to eat any blank lines or form feeds before any real data
-                ' Don't do it for RSTS/E or MVS38J
-                Program.Log($"[{DevName}] Examining document information.")
-                Dim idx As Integer = 0
-                Do
-                    doc(idx) = doc(idx).Trim
-                    'Program.Log($"[{DevName}] '{doc(idx)}'")
-                    ' loop through until we hit real data
-                    If doc(idx) = vbFormFeed Then
-                        doc(idx) = " " & vbLf
-                        Exit Do ' The first form feed is probably junk, but it does start data.
-                    End If
-                    If doc(idx).Trim = "" Then
-                        doc(idx) = " "
-                    End If
-                    If doc(idx).Trim <> "" Then Exit Do
-                    idx = idx + 1
-                Loop
+                If OS <> OSType.OS_TANDYXENIX Then        'This is getting insanely stupid folks.
+                    ' Lets try to eat any blank lines or form feeds before any real data
+                    ' Don't do it for RSTS/E or MVS38J
+                    Program.Log($"[{DevName}] Examining document information.")
+                    Dim idx As Integer = 0
+                    Do
+                        doc(idx) = doc(idx).Trim
+                        'Program.Log($"[{DevName}] '{doc(idx)}'")
+                        ' loop through until we hit real data
+                        If doc(idx) = vbFormFeed Then
+                            doc(idx) = " " & vbLf
+                            Exit Do ' The first form feed is probably junk, but it does start data.
+                        End If
+                        If doc(idx).Trim = "" Then
+                            doc(idx) = " "
+                        End If
+                        If doc(idx).Trim <> "" Then Exit Do
+                        idx = idx + 1
+                    Loop
+                End If
             End If
-
             Dim JobID, JobName, UserID As String
             Select Case OS
                 Case OSType.OS_MVS38J
@@ -311,6 +326,9 @@ Public Class devs
                 Case OSType.OS_VMSP
                     Program.Log($"[{DevName}] OS type is VM/SP",, ConsoleColor.Green)
                     vals = VMSP_ExtractJobInformation(doc)
+                Case OSType.OS_TANDYXENIX
+                    Program.Log($"[{DevName}] OS Type is TANDY XENIX",, ConsoleColor.Green)
+                    vals = ("XENIX", Now.Ticks, "XENIX")
                 Case Else
                     Program.Log($"[{DevName}] OS type is not known. [{OS}]",, ConsoleColor.Yellow)
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
@@ -499,7 +517,6 @@ Public Class devs
     End Function
 
     Private Function MPE_ExtractJobInformation(lines As List(Of String)) As (JobName As String, JobId As String, User As String)
-        Stop
         Dim GotInfo As Boolean = False
         Dim jobName As String = "UnknownJob"
         Dim jobId As String = "0000"
@@ -637,6 +654,13 @@ Public Class devs
                 StartLine = 0
             End If
 
+            If OS = OSType.OS_TANDYXENIX Then
+                Program.Log($"Setting page for TANDY XENIX")
+                firstline = 25
+                linesPerPage = 66
+                StartLine = 3
+            End If
+
             ' Define margins (1/2 inch for left and right margins)
             Dim leftMargin As Double = 30 ' 1/2 inch margin
             Dim rightMargin As Double = 30 ' 1/2 inch margin
@@ -706,7 +730,6 @@ Public Class devs
                 outList.RemoveAt(0)       ' In case it starts out with a LF/CR or otherwise empty line.
             End If
             ' Process each line from the output list
-
             For Each line As String In outList
                 Try
                     ' Remove non-printable characters (same as before)
@@ -735,42 +758,44 @@ Public Class devs
                         Else
                             If line.Length > 132 Then line = line.Substring(0, 132)   ' Cut off the line
                         End If
-                        If line.Contains(Chr(13)) Then
-                            ' Split the line by CR characters (we will handle the overstrike behavior here)
-                            Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
 
-                            ' Track the current starting position for drawing
-                            Dim currentX As Double = leftMargin
-                            If (segments.Count > 1) And (segments(1).Trim <> "") Then
-                                'Program.Log($"Segment count is {segments.Count}")
-                                ' Iterate through the segments
-                                Dim segIdx As Integer = 0
-                                Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
-                                For Each segment As String In segments
-                                    'Program.Log($"{segment}")
-                                    If Not String.IsNullOrEmpty(segment) Then
-                                        ' Draw the base text segment at the starting position
-                                        gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                        If segIdx > 0 Then
-                                            ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
+                        If line.Contains(Chr(13)) Then
+                                ' Split the line by CR characters (we will handle the overstrike behavior here)
+                                Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
+
+                                ' Track the current starting position for drawing
+                                Dim currentX As Double = leftMargin
+                                If (segments.Count > 1) And (segments(1).Trim <> "") Then
+                                    'Program.Log($"Segment count is {segments.Count}")
+                                    ' Iterate through the segments
+                                    Dim segIdx As Integer = 0
+                                    Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
+                                    For Each segment As String In segments
+                                        'Program.Log($"{segment}")
+                                        If Not String.IsNullOrEmpty(segment) Then
+                                            ' Draw the base text segment at the starting position
                                             gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                            If segIdx > 0 Then
+                                                ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
+                                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                            End If
+                                            segIdx += 1
                                         End If
-                                        segIdx += 1
-                                    End If
-                                Next
+                                    Next
+                                Else
+                                    'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
+                                    ' The second segment is blank, so just write it as usual.
+                                    gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                End If
                             Else
-                                'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
-                                ' The second segment is blank, so just write it as usual.
+                                ' If there are no CRs, just print the line normally
                                 gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                             End If
-                        Else
-                            ' If there are no CRs, just print the line normally
-                            gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                        End If
+
                         ' Move down for the next line
                         y += lineHeight
-                        currentLine += 1
-                    End If
+                            currentLine += 1
+                        End If
                 Catch ex As Exception
                     ' Handle errors (e.g., invalid characters or drawing issues)
                 End Try
