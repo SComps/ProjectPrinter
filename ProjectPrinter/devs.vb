@@ -154,10 +154,10 @@ Public Class devs
     End Function
 
     Private Sub ProcessDocumentData(documentData As String)
-        'This really sucks but Tandy XENIX needs 6 line feeds for the first page.  I hate that.
-        If OS = OSType.OS_TANDYXENIX Then
-            documentData = vbCrLf & vbCrLf & vbCrLf & documentData
-        End If
+        'This really sucks but Tandy XENIX needs 3 line feeds for the first page.  I hate that.
+        'If OS = OSType.OS_TANDYXENIX Then
+        'documentData = vbCrLf & vbCrLf & vbCrLf & documentData
+        'End If
         ' Split the data into lines and process it
         JobNumber = JobNumber + 1
         Dim lines As New List(Of String)()
@@ -281,7 +281,7 @@ Public Class devs
         Receiving = False
         Program.Log($"[{DevName}] received {doc.Count} lines from remote host.",, ConsoleColor.Cyan)
         If doc.Count > 10 Then
-            If (OS <> OSType.OS_RSTS) And (OS > OSType.OS_MVS38J) Then
+            If (OS <> OSType.OS_RSTS) And ((OS > OSType.OS_MVS38J) And (OS <> OSType.OS_ZOS)) Then
                 If OS <> OSType.OS_TANDYXENIX Then        'This is getting insanely stupid folks.
                     ' Lets try to eat any blank lines or form feeds before any real data
                     ' Don't do it for RSTS/E or MVS38J
@@ -329,6 +329,9 @@ Public Class devs
                 Case OSType.OS_TANDYXENIX
                     Program.Log($"[{DevName}] OS Type is TANDY XENIX",, ConsoleColor.Green)
                     vals = ("XENIX", Now.Ticks, "XENIX")
+                Case OSType.OS_ZOS
+                    Program.Log($"[{DevName}] OS Type is IBM Z/OS",, ConsoleColor.Green)
+                    vals = ZOS_ExtractJobInformation(doc)
                 Case Else
                     Program.Log($"[{DevName}] OS type is not known. [{OS}]",, ConsoleColor.Yellow)
                     vals = ("UNKNOWN", Now.Ticks.ToString, "OS UNKNOWN")
@@ -367,6 +370,35 @@ Public Class devs
         End If
     End Sub
 
+    Private Function ZOS_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
+        Dim jobName As String = "UnknownJob"
+        Dim jobId As String = "0000"
+        Dim user As String = "UnknownUser"
+        Log($"[{DevName}] resolving Z/OS job information.")
+        For Each line As String In lines
+            line = line.ToUpper.Trim
+            If line.Trim <> "" Then
+                Try
+                    Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
+                    If parts(0).StartsWith("*") Then
+
+                        If parts(1) = "JOBID:" Then
+                            jobId = parts(2)
+                        End If
+                        If parts(1) = "JOB" And parts(2) = "NAME:" Then
+                            jobName = parts(3)
+                        End If
+                        If parts(1) = "USER" And parts(2) = "ID:" Then
+                            user = parts(3)
+                        End If
+                    End If
+                Catch ex As Exception
+
+                End Try
+            End If
+        Next
+        Return (jobName, jobId, user)
+    End Function
 
     Private Function MVS38J_ExtractJobInformation(lines As List(Of String)) As (Jobname As String, JobID As String, User As String)
         Dim jobName As String = "UnknownJob"
@@ -658,7 +690,14 @@ Public Class devs
                 Program.Log($"Setting page for TANDY XENIX")
                 firstline = 25
                 linesPerPage = 66
-                StartLine = 3
+                StartLine = 0
+            End If
+
+            If OS = OSType.OS_ZOS Then
+                Program.Log($"Setting page for Z/OS")
+                firstline = 45
+                linesPerPage = 66
+                StartLine = 5
             End If
 
             ' Define margins (1/2 inch for left and right margins)

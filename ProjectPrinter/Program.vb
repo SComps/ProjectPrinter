@@ -36,6 +36,7 @@ Public Enum OSType
     OS_NOS278           ' CDC NOS 2.7.8
     OS_VMSP             ' IBM VM/SP (including HPO)
     OS_TANDYXENIX       ' Tandy XENIX
+    OS_ZOS              ' IBM z/OS
 End Enum
 Module Program
     ' Updated for new install of VS2022 4-22-25
