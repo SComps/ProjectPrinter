@@ -71,7 +71,6 @@ Module Program
 
     Async Sub DoBackgroundWork(ByVal cancellationToken As CancellationToken)
         Do While Not cancellationToken.IsCancellationRequested
-            Console.WriteLine($"Background work running at {DateTime.Now}...")
             Try
                 ' Wait asynchronously, respecting the cancellation token
                 Await Task.Delay(5000, cancellationToken)
@@ -80,7 +79,6 @@ Module Program
                 Exit Do
             End Try
         Loop
-        Console.WriteLine("Background task stopped.")
     End Sub
 
     Public Sub Main(args As String())
@@ -118,7 +116,7 @@ Module Program
         Try
             cts.Token.WaitHandle.WaitOne()
         Catch ex As OperationCanceledException
-            Console.WriteLine(ex.Message)
+            Console.WriteLine($"Terminating signal: {ex.Message}")
         End Try
         Log("Terminating",, 12)
         RemoveHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
