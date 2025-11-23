@@ -62,14 +62,14 @@ Module Program
     Public LastScreen As Integer = 0   '0 = Log, 1 = Panel
     Public WithEvents statTimer As New System.Timers.Timer
 
-    Public Function Main(args As String()) As Integer
+    Public Sub Main(args As String())
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
         Dim version As String = "github.0.1.0-SI"
         If args.Count > 0 Then
             If args.Count = 1 And args(0).ToUpper = "VERSION" Then
                 Console.WriteLine("Project printer version: " & version.ToString & ". 2024,2025 As open source.")
                 Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
-                Return 0
+                ShutDown()
             End If
         End If
         Console.WriteLine($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.")
@@ -91,11 +91,12 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         Running = True
+        Console.WriteLine("Calling DoLoop")
         Task.Run(AddressOf DoLoop)
-    End Function
+    End Sub
 
     Async Sub DoLoop()
-
+        Console.WriteLine("Starting DoLoop")
         While True
             Await Task.Delay(300)
         End While
@@ -286,6 +287,7 @@ Module Program
             Next
         Else
             Program.Log($"No devices to initialize.  Run device_config.",, ConsoleColor.Red)
+            Console.WriteLine("Shutting down because no devices are configured.")
             Environment.Exit(0)
         End If
     End Sub
