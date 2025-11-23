@@ -118,7 +118,9 @@ Module Program
         Try
             cts.Token.WaitHandle.WaitOne()
         Catch ex As OperationCanceledException
+            Console.WriteLine(ex.Message)
         End Try
+        Log("Terminating",, 12)
         RemoveHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
     End Sub
 
