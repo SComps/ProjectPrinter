@@ -211,8 +211,6 @@ Module Program
             Case "none"
                 ' Requested silent operation
             Case Else
-                ' Logging to the defined filename
-                Console.WriteLine($"Logging to file {logType}")
                 Dim logExists As Boolean = File.Exists(logType)
                 Dim sw As New StreamWriter(logType, True)
                 sw.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
