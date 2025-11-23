@@ -65,7 +65,7 @@ Module Program
     Private ReadOnly cts As New CancellationTokenSource()
 
     Sub OnSignalReceived(ByVal context As AssemblyLoadContext)
-        Log("Termination signal received...",, 12)
+        Debug.Print(context.ToString)
         cts.Cancel() ' Request cancellation
     End Sub
 
