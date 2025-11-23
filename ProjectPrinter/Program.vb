@@ -5,6 +5,7 @@ Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Reflection
+Imports System.Runtime.Loader
 Imports System.Text
 Imports System.Threading
 
@@ -61,8 +62,29 @@ Module Program
     Public ShowPanel As Boolean = False
     Public LastScreen As Integer = 0   '0 = Log, 1 = Panel
     Public WithEvents statTimer As New System.Timers.Timer
+    Private ReadOnly cts As New CancellationTokenSource()
+
+    Sub OnSignalReceived(ByVal context As AssemblyLoadContext)
+        Console.WriteLine("Termination signal received...")
+        cts.Cancel() ' Request cancellation
+    End Sub
+
+    Async Sub DoBackgroundWork(ByVal cancellationToken As CancellationToken)
+        Do While Not cancellationToken.IsCancellationRequested
+            Console.WriteLine($"Background work running at {DateTime.Now}...")
+            Try
+                ' Wait asynchronously, respecting the cancellation token
+                Await Task.Delay(5000, cancellationToken)
+            Catch ex As TaskCanceledException
+                ' Expected exception on cancellation
+                Exit Do
+            End Try
+        Loop
+        Console.WriteLine("Background task stopped.")
+    End Sub
 
     Public Sub Main(args As String())
+        AddHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
         Dim version As String = "github.0.1.0-SI"
         If args.Count > 0 Then
@@ -92,7 +114,8 @@ Module Program
         statTimer.Enabled = True
         Running = True
         Console.WriteLine("Calling DoLoop")
-        Task.Run(AddressOf DoLoop)
+        Task.Run(Sub() DoBackgroundWork(cts.Token))
+        RemoveHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
     End Sub
 
     Async Sub DoLoop()
