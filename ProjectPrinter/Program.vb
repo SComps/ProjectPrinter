@@ -72,7 +72,7 @@ Module Program
                 Return 0
             End If
         End If
-        Log($"ProjectPrinter version {Version.ToString}. 2024,2025 As open source. No warranties, express or implied.",, ConsoleColor.DarkRed)
+        Log($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.",, ConsoleColor.DarkRed)
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
@@ -90,14 +90,16 @@ Module Program
         End If
         LoadDevices()
         statTimer.Enabled = True
-        While Running
-
-            Thread.Sleep(300)
-        End While
-        ShutDown()
+        Task.Run(AddressOf DoLoop)
         Return 0
     End Function
 
+    Async Sub DoLoop()
+        While Running
+            Await Task.Delay(300)
+        End While
+        ShutDown()
+    End Sub
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
         ' each arg is a string in the format of arg:value ie: config:appconfig.cfg
@@ -206,13 +208,11 @@ Module Program
                     Console.WriteLine(errMsg)
                     Console.ResetColor()
                 End If
-                logList = RotateLog(timestamp, errMsg, FColor)
+                logList = RotateLog(timeStamp, errMsg, FColor)
                 Debug.Print("loglist-->" & logList.Count)
             Case "none"
                 ' Requested silent operation
             Case Else
-                ' Logging to the defined filename
-                Console.WriteLine($"Logging to file {logType}")
                 Dim logExists As Boolean = File.Exists(logType)
                 Dim sw As New StreamWriter(logType, True)
                 sw.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
