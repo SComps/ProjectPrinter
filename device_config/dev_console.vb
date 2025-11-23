@@ -35,7 +35,9 @@ Module dev_console
         If OperatingSystem.IsLinux Then
             Console.WriteLine("Running under Linux.")
         Else
+#If WINDOWS Then
             Console.SetWindowSize(80, 24)
+#End If
         End If
 
         max_Rows = Console.WindowHeight
