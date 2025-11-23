@@ -72,7 +72,7 @@ Module Program
                 Return 0
             End If
         End If
-        Log($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.",, ConsoleColor.DarkRed)
+        Console.WriteLine($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.")
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
@@ -90,15 +90,16 @@ Module Program
         End If
         LoadDevices()
         statTimer.Enabled = True
+        Running = True
         Task.Run(AddressOf DoLoop)
-        Return 0
     End Function
 
     Async Sub DoLoop()
-        While Running
+
+        While True
             Await Task.Delay(300)
         End While
-        ShutDown()
+
     End Sub
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
