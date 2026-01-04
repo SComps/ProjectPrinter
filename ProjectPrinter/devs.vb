@@ -277,6 +277,10 @@ Public Class devs
             Program.Log($"[{DevName}] Created output directory {OutDest}",, ConsoleColor.Yellow)
             FileIO.FileSystem.CreateDirectory(OutDest)
         End If
+        If Not FileIO.FileSystem.DirectoryExists($"{OutDest}/data") Then
+            Program.Log($"[{DevName}] Created data data directory {OutDest}/data",, ConsoleColor.Yellow)
+            FileIO.FileSystem.CreateDirectory($"{OutDest}/data")
+        End If
         Dim vals As (JobName As String, JobID As String, User As String) = ("", "", "")
         Receiving = False
         Program.Log($"[{DevName}] received {doc.Count} lines from remote host.",, ConsoleColor.Cyan)
@@ -695,7 +699,7 @@ Public Class devs
 
             If OS = OSType.OS_ZOS Then
                 Program.Log($"Setting page for Z/OS")
-                firstline = 45
+                firstline = 43
                 linesPerPage = 66
                 StartLine = 5
             End If
