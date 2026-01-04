@@ -1,7 +1,11 @@
+
+' // SINGLE INSTANCE BRANCH MODIFIED
+
 Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Reflection
+Imports System.Runtime.Loader
 Imports System.Text
 Imports System.Threading
 
@@ -49,7 +53,7 @@ Module Program
     Public GlobalParms As New List(Of parmStruct)
     Public configFile As String = "devices.dat"
     Public cmdPort As Integer = 0
-    Public logType As String = "default"
+    Public logType As String = "printers.log"
     Public logList As New List(Of LogEntry) 'Holds the last 500 log messages
     Public RemoteCommand As TcpListener
 
@@ -58,18 +62,37 @@ Module Program
     Public ShowPanel As Boolean = False
     Public LastScreen As Integer = 0   '0 = Log, 1 = Panel
     Public WithEvents statTimer As New System.Timers.Timer
+    Private ReadOnly cts As New CancellationTokenSource()
 
-    Public Function Main(args As String()) As Integer
+    Sub OnSignalReceived(ByVal context As AssemblyLoadContext)
+        Debug.Print(context.ToString)
+        cts.Cancel() ' Request cancellation
+    End Sub
+
+    Async Sub DoBackgroundWork(ByVal cancellationToken As CancellationToken)
+        Do While Not cancellationToken.IsCancellationRequested
+            Try
+                ' Wait asynchronously, respecting the cancellation token
+                Await Task.Delay(5000, cancellationToken)
+            Catch ex As TaskCanceledException
+                ' Expected exception on cancellation
+                Exit Do
+            End Try
+        Loop
+    End Sub
+
+    Public Sub Main(args As String())
+        AddHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
-        Dim version As Version = assembly.GetName().Version
+        Dim version As String = "github.0.1.0-SI"
         If args.Count > 0 Then
             If args.Count = 1 And args(0).ToUpper = "VERSION" Then
                 Console.WriteLine("Project printer version: " & version.ToString & ". 2024,2025 As open source.")
                 Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
-                Return 0
+                ShutDown()
             End If
         End If
-        Log($"ProjectPrinter version {Version.ToString}. 2024,2025 As open source. No warranties, express or implied.",, ConsoleColor.DarkRed)
+        Console.WriteLine($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.")
         statTimer.Interval = 30000 '30 seconds
         GlobalParms = CheckArgs(args)
         If GlobalParms.Count = 0 Then
@@ -85,72 +108,38 @@ Module Program
             Dim fs As FileStream = File.Open(configFile, FileMode.Create)
             fs.Close()
         End If
-
-
-        If cmdPort = "0" Then
-            Log("Not Listening for a remote controller.")
-        Else
-
-            Dim listenerTask = StartTcpListenerAsync()
-        End If
-
         LoadDevices()
         statTimer.Enabled = True
-        While Running
+        Running = True
+        Console.WriteLine("Calling DoLoop")
+        Task.Run(Sub() DoBackgroundWork(cts.Token))
+        Try
+            cts.Token.WaitHandle.WaitOne()
+        Catch ex As OperationCanceledException
+            Console.WriteLine($"Terminating signal: {ex.Message}")
+        End Try
+        Log("Terminating",, 12)
+        RemoveHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
+    End Sub
 
-            Thread.Sleep(300)
+    Async Sub DoLoop()
+        Console.WriteLine("Starting DoLoop")
+        While True
+            Await Task.Delay(300)
         End While
-        ShutDown()
-        Return 0
-    End Function
 
-    Sub DisplayPanel()
-        If LastScreen = 0 Then
-            Console.Clear()
-        End If
-        Console.SetCursorPosition(0, 0)
-        Console.WriteLine($"ProjectPrinter Device Dashboard")
-        Console.SetCursorPosition(0, Console.WindowHeight)
-        Console.Write("<Esc> Return to log display")
     End Sub
-
-    Sub DisplayLog()
-        Console.Clear()
-        Console.Write(" ")
-        Dim logEntries As Integer = logList.Count - 1
-        Dim starting As Integer = logEntries - Console.WindowHeight
-        If starting < 0 Then starting = 0
-        For i = starting To logEntries
-            Console.Write(logList(i).TimeStamp & " ")
-            Console.ForegroundColor = logList(i).FColor
-            Console.WriteLine(logList(i).errMsg)
-            Console.ResetColor()
-        Next
-    End Sub
-
-    Sub CheckTimer(source As Object, args As EventArgs) Handles statTimer.Elapsed
-        For Each d As devs In DevList
-            If Not d.Connected Then
-                Program.Log($"[{d.DevName}] Remote not connected.  Retrying...")
-                d.Connect()
-            End If
-        Next
-        statTimer.Enabled = True
-    End Sub
-
     Function CheckArgs(args As String()) As List(Of parmStruct)
         ' checks arguements, sets values for operation.
         ' each arg is a string in the format of arg:value ie: config:appconfig.cfg
         If args.Count > 0 Then
-            If args(0).ToUpper = "HELP" Then
-                DoHelp()
-            End If
+
         End If
         Dim argList As New List(Of parmStruct)
         Dim ParmsProvided As Integer = 0
         If args.Length = 0 Then
             'No arguments were specified, set up the defaults
-            args = {"config:devices.dat", "cmdPort:16000", "logType:default"}
+            args = {"config:devices.dat", "logType:printers.log"}
         End If
 
         For Each p As String In args
@@ -186,16 +175,12 @@ Module Program
 
     Sub ProcessParms(parmList As List(Of parmStruct))
         Dim newCfg As String = "devices.cfg"        ' Set up some sane defaults.
-        Dim newPort As String = "16000"
-        Dim newLogType As String = "default"
+        Dim newLogType As String = "printers.log"
         For Each p As parmStruct In parmList
 
             Select Case p.arg
                 Case "config"
                     newCfg = p.value
-                    Log(String.Format(parmDefined, p.arg, p.value), False)
-                Case "cmdPort"
-                    newPort = p.value
                     Log(String.Format(parmDefined, p.arg, p.value), False)
                 Case "logType"
                     newLogType = p.value
@@ -209,7 +194,6 @@ Module Program
             End Select
         Next
         configFile = newCfg
-        cmdPort = Val(newPort)
         logType = newLogType
         'Stop
     End Sub
@@ -253,13 +237,11 @@ Module Program
                     Console.WriteLine(errMsg)
                     Console.ResetColor()
                 End If
-                logList = RotateLog(timestamp, errMsg, FColor)
+                logList = RotateLog(timeStamp, errMsg, FColor)
                 Debug.Print("loglist-->" & logList.Count)
             Case "none"
                 ' Requested silent operation
             Case Else
-                ' Logging to the defined filename
-                Console.WriteLine($"Logging to file {logType}")
                 Dim logExists As Boolean = File.Exists(logType)
                 Dim sw As New StreamWriter(logType, True)
                 sw.WriteLine(String.Format("{0} {1}", DateTime.Now.ToString("yyyy-MM-dd (HH:mm.ss)"), errMsg))
@@ -332,6 +314,7 @@ Module Program
             Next
         Else
             Program.Log($"No devices to initialize.  Run device_config.",, ConsoleColor.Red)
+            Console.WriteLine("Shutting down because no devices are configured.")
             Environment.Exit(0)
         End If
     End Sub
@@ -362,209 +345,7 @@ Module Program
         Return out
     End Function
 
-    Private Sub DoHelp()
-        Console.WriteLine("Command line options:")
-        Console.WriteLine("")
-        Console.WriteLine("arguments take the form key:value")
-        Console.WriteLine("CASE IS SENSITIVE IN BOTH KEY AND VALUE!")
-        Console.WriteLine("")
-        Console.WriteLine("config defines the configuration file:  config:devices.cfg [DEFAULT]")
-        Console.WriteLine("cmdPort defines the listening port for management: cmdPort:16000 [DEFAULT]")
-        Console.WriteLine("logType defines logging options as follows")
-        Console.WriteLine("      default: Logs to the screen or stdout [DEFAULT]")
-        Console.WriteLine("      none: No logging once application is initialized.")
-        Console.WriteLine("   any valid filename: example logType:logfile.log")
-        Console.WriteLine("")
-        Console.WriteLine("if no options are present, defaults are selected automatically.")
-        Console.WriteLine("")
-        End
-    End Sub
 
 
-    ' ==============================================
-    ' REMOTE CLIENT CODE FOLLOWS 
-    ' ==============================================
-
-    Async Function StartTcpListenerAsync() As Task
-        Dim listener As New TcpListener(IPAddress.Any, cmdPort)
-
-        Try
-            listener.Start()
-            Log($"Remote management async server started on port {cmdPort}")
-
-            While True
-                ' Accept incoming client connections asynchronously
-                Dim client As TcpClient = Await listener.AcceptTcpClientAsync()
-                Log("Accepted connection on remote management port.")
-                Await HandleClientAsync(client) ' Process the client and wait for it to finish
-            End While
-        Catch ex As Exception
-            Log($"Error: {ex.Message}")
-            Running = False
-        Finally
-            listener.Stop()
-        End Try
-    End Function
-
-    Async Function HandleClientAsync(client As TcpClient) As Task
-        Using client
-            Try
-                Dim stream As NetworkStream = client.GetStream()
-                Dim reader As New StreamReader(stream, Encoding.UTF8)
-                Dim writer As New StreamWriter(stream, Encoding.UTF8) With {.AutoFlush = True}
-                Await writer.WriteLineAsync(vbCrLf & "ProjectPrinter Remote Management.")
-                Log("Waiting for complete lines from the client...")
-                While client.Connected
-                    Await writer.WriteAsync(">>>")
-                    ' Read a complete line of input
-                    Dim line As String = Await reader.ReadLineAsync()
-
-                    If line Is Nothing Then
-                        Exit While ' Client disconnected
-                    End If
-                    ' Process the received line
-                    If line.Trim().Equals("STOP", StringComparison.OrdinalIgnoreCase) Then
-                        Log("Stop command received. Closing connection.")
-                        Exit While
-                    ElseIf line.Trim().Equals("SHUTDOWN", StringComparison.OrdinalIgnoreCase) Then
-                        Log("Shutdown command received. Terminating.")
-                        Running = False
-                        Exit While
-                    End If
-                    Dim response As String = ProcessLine(line)
-                    ' Send the response back to the client
-                    Await writer.WriteLineAsync(response)
-                End While
-            Catch ex As Exception
-                Log($"Client error: {ex.Message}")
-            End Try
-        End Using
-    End Function
-
-    Function ProcessLine(input As String) As String
-        ' Process input from the remote client
-        Dim NoCommand As String = "ERROR: '{0}' Invalid command. Please review the documentation."
-        ' Break input into words separated by a space or comma.
-        Dim parsed As String() = input.Split({" ", ","})
-        Dim cmd As String = parsed(0).ToUpper
-        Log("Remote-->" & cmd)
-        Select Case cmd
-            Case "HELLO"
-                Return "ProjectPrinter V0.1Alpha, Development. 2024"
-            Case "SHOW_DEVS"
-                Return DeviceList()
-            Case "UPDATE_DEVS"
-                SaveDevices()
-                Return "Device list updated with current values."
-            Case "LOAD_DEVS"
-                LoadDevices()
-                Return "Device list loaded from stored configuration."
-            Case "CLR_STAGE"
-                StageList.Clear()
-                Program.Log("Cleared device staging area.")
-                Return "Staging list cleared."
-            Case "STAGE_DEV"
-                ' Adds a new device to the staging area
-                Return AddADevice(input)
-            Case "COMMIT_STAGE"
-                ' Replaces all current devices with the staging devices
-                ' waits until everything is idle, then restarts.
-            Case "HELP"
-                Return ShowHelp()
-            Case "GUI_SEND"
-                ' Sends configuration data to GUI client
-                Return GUI_SendConfig()
-            Case "GUI_SDEV"
-                ' Sends device data for the GUI client.
-                Return GUI_SendDev()
-            Case "GUI_RECV"
-                ' Receives configuration from GUI client.
-            Case "GUI_RDEV"
-                ' Receives Device configuration for all devices.
-            Case "RESTART"
-            Case "REPRINT"
-                ' Code here to reprint a job from .dst file.
-                Dim parts As String() = parsed(1).Split("--")
-                Dim myIndex As Integer = -1
-                For Each d As devs In DevList
-                    If d.DevName.ToUpper = parts(0).ToUpper Then    ' Easier to compare.
-                        myIndex = DevList.IndexOf(d)
-                    End If
-                Next
-                If myIndex > -1 Then
-                    Program.Log("Requesting reprint of " & parsed(1))
-                    DevList(myIndex).Reprint(parsed(1))
-                Else
-                    Return parsed(1) & " bad."
-                End If
-                Return ($"*** Reprint requestioned.")
-        End Select
-        Return String.Format(NoCommand, input)
-    End Function
-
-    Private Function AddADevice(inputline As String) As String
-        Dim newDevice As New devs
-        Dim inputParms As String() = inputline.Split("|")
-        If inputParms.Count <> 8 Then
-            Return $"Invalid device data. {inputParms.Count} elements received."
-        End If
-        newDevice.DevName = inputParms(1)
-        newDevice.DevDescription = inputParms(2)
-        newDevice.DevType = inputParms(3)
-        newDevice.ConnType = inputParms(4)
-        newDevice.DevDest = inputParms(5)
-        newDevice.OS = inputParms(6)
-        newDevice.Auto = inputParms(7)
-        newDevice.PDF = inputParms(8)
-        StageList.Add(newDevice)
-        Program.Log($"[STAGING] Added new device {newDevice.DevName} to the staging list.")
-        Return "Staging device accepted."
-    End Function
-    Function ShowHelp() As String
-        Dim hlp As New StringBuilder
-        hlp.AppendLine("ProjectPrinter - 2024,2025 provided as true open source.  As in here's")
-        hlp.AppendLine("the source, do what you want with it.  Be respectful and honorable.  If you")
-        hlp.AppendLine("use this commercially, please at least try to help the authors out a little.")
-        hlp.AppendLine("The world is an expensive, dark place.  Thanks Biden!  Your a freakin' pip.")
-        hlp.AppendLine("")
-        hlp.AppendLine("COMMAND HELP")
-        hlp.AppendLine("------- ----")
-        hlp.AppendLine("")
-        hlp.AppendLine("HELLO       - Returns version information")
-        hlp.AppendLine("SHOW_DEVS   - Displays a list of configured devices.")
-        hlp.AppendLine("UPDATE_DEVS - Writes the current device configuration to a file.")
-        hlp.AppendLine("LOAD_DEVS   - Loads the device list from the configuration file, and activates")
-        hlp.AppendLine("              the devices if necessary.")
-        hlp.AppendLine("STOP        - Disconnects the remote management client (this screen)")
-        hlp.AppendLine("SHUTDOWN    - Terminates the ProjectPrinter process.")
-        hlp.AppendLine("HELP        -  Really?  Display this message.")
-        hlp.AppendLine("")
-        hlp.AppendLine("This management connection is rudimentary at best.  There is no editting")
-        hlp.AppendLine("features written into the code.  That would be a waste of coding effort")
-        hlp.AppendLine("when there are much more important things to be done, like making it do what")
-        hlp.AppendLine("it's intended to do as fast as we can make it happen.  Type your commands")
-        hlp.AppendLine("carefully--or type them again... correctly.")
-        hlp.AppendLine("")
-        hlp.AppendLine("As more commands become available, they will be documented here.")
-        Return hlp.ToString()
-    End Function
-
-    Private Function GUI_SendDev()
-        Dim outFmt As String = "DEV|{0}|{1}|{2}|{3}|{4}|{5}|{6}|{7}" & vbCrLf
-        Dim sb As New StringBuilder
-        For Each d In DevList
-            sb.Append(String.Format(outFmt, d.DevName, d.DevDescription, d.DevType, d.ConnType, d.DevDest, d.OS, d.Auto, d.PDF))
-        Next
-        sb.Append("[[EOD]]")
-        Return sb.ToString
-    End Function
-
-    Private Function GUI_SendConfig()
-        Dim outFmt As String = "CFG|{0}|{1}|{2}" & vbCrLf
-        Dim sb As New StringBuilder
-        sb.Append(String.Format(outFmt, configFile, cmdPort, logType))
-        sb.Append("[[EOD]]")
-        Return sb.ToString
-    End Function
 
 End Module
