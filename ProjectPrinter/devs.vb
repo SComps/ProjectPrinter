@@ -648,8 +648,7 @@ Public Class devs
             If OS = OSType.OS_MVS38J Then
                 Program.Log($"Setting page for MVS 3.8J")
                 firstline = 45
-                ' Standard page is 66 lines. If we skip 5, we have 61 lines left for content.
-                linesPerPage = 61
+                linesPerPage = 66
                 StartLine = 5
             End If
 
@@ -806,8 +805,9 @@ Public Class devs
                         InitializeNewPage()
                     End If
 
-                    ' Create a new page if current page is full
-                    If currentLine >= (StartLine + linesPerPage) Then
+                    ' Create a new page if current page is full (physical sheet is 66 lines)
+                    ' OR if the OS-specific logical limit is reached.
+                    If (currentLine >= 66) Or (currentLine >= (StartLine + linesPerPage)) Then
                         InitializeNewPage()
                     End If
 
