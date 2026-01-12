@@ -703,7 +703,7 @@ Public Class devs
 
             If OS = OSType.OS_ZOS Then
                 Program.Log($"Setting page for Z/OS")
-                firstline = 45
+                firstline = 46
                 linesPerPage = 66
                 StartLine = 5
             End If
