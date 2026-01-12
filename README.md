@@ -36,7 +36,7 @@ Significant enhancements to the Greenbar PDF generation:
 - **Standard Layout:** Strictly adheres to the standard 1403 wide-carriage format (14.875" x 11" nominal, dynamically scaled for content).
 - **66 Lines Per Page:** Every page now accommodates exactly 66 lines of text content at 6 LPI (12pt spacing). The page height automatically adjusts to preserve this capacity even when top-margin offsets (like MVS's 5-line header skip) are used.
 - **132 Characters Wide:** Font scaling has been refined to fit exactly 132 characters within the printable area, denoted by vertical dashed margin lines.
-- **Comprehensive Detailing:** Includes tractor feed holes, gutter-aligned margin numbers (1-71+), and alignment fiducials for an authentic look.
+- **Comprehensive Detailing:** Includes tractor feed holes, gutter-aligned margin numbers (1-60), and alignment fiducials for an authentic look.
 - **Legacy Fallback:** Use the `--imageproc` command-line flag to switch back to the original image-based background processing.
 - **Testing:** Run with the `test` argument (e.g., `ProjectPrinter.exe test`) to generate a visual verification PDF.
 
