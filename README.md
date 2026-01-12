@@ -1,5 +1,26 @@
 # ProjectPrinter
 
+1/12/36
+Some fairly large changes.  Added Z/OS and Tandy's XENIX to the supported operating system list.
+
+```(0) OS_MVS38J           ' IBM MVS 3.8J or OSVS2
+(1) OS_VMS              ' VAX and ALPHA VMS/OpenVMS
+(2) OS_MPE              ' HP 3000 MPE
+(3) OS_RSTS             ' DEC PDP-11 RSTS/E
+(4) OS_VM370            ' IBM VM370 (VM370CE Community Edition) Special header pages
+(5) OS_NOS278           ' CDC NOS 2.7.8
+(6) OS_VMSP             ' IBM VM/SP (including HPO)
+(7) OS_TANDYXENIX       ' Tandy XENIX
+(8) OS_ZOS              ' IBM z/OS
+```
+
+The default logging is now 'printers.log' rather than the screen.  You can get to the original onscreen log by adding the parameter logType:default when starting the application.
+I'm starting to get this to be a background process.  For now; it does need the terminal to remain open unless you've set it up as a systemd service on linux.  On Windows?  Yep.  Leave the terminal open.
+You can view the log in printers.log; or as noted before; add the logType:default parameter.
+
+Also in this update; the command listener is no longer a part of the application.  It used up resources; nobody really bothered with it, and to be honest it was flaky and most likely would have eventually been a security concern.  So it's gone.
+Since this part of the code is gone; there's no need to support that funky reprint command that it offered; so no more .dst files. (again).
+
 3/2/25 - There have been several small cosmetic updates, notably colorizing the output for ProjectPrinter.  Additionally, in previous versions a remote host that disconnected would not be reconnected unless you restarted the whole process.  This is mostly in how the .NET TCPClient handles events meaning [not at all].  So this required some creative error handling.  It seems to be working fine now.  If anyone runs into problems with it, let me know.  Currently the Google Drive links are outdated.  Hopefully I'll get to rebuild everything on the various platforms and get them uploaded this weekend.
 
 1/22/25-Disabled writing of diagnostic and debugging text files with the exception of the .dst files.  The dst files are no longer parsed, but *exactly* as was 
