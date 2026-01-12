@@ -111,7 +111,8 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         Running = True
-        Console.WriteLine("Calling DoLoop")
+        Console.WriteLine("Starting printers.  Please keep this terminal open.")
+        Console.WriteLine("Activity is being logged to printer.log")
         Task.Run(Sub() DoBackgroundWork(cts.Token))
         Try
             cts.Token.WaitHandle.WaitOne()
@@ -123,7 +124,7 @@ Module Program
     End Sub
 
     Async Sub DoLoop()
-        Console.WriteLine("Starting DoLoop")
+
         While True
             Await Task.Delay(300)
         End While
@@ -328,22 +329,6 @@ Module Program
         End Using
 
     End Sub
-
-
-    Function DeviceList() As String
-        Dim out As String = ""
-        Dim outF As String = "{0,15}{1,20}{2,20}:{3,20}" & vbCrLf
-        out = out & "DEVICE LIST" & vbCrLf & vbCrLf
-        out = out & StrDup(79, "-") & vbCrLf
-        out = out & String.Format(outF, "DEVICE", "DEV_TYPE", "CONN_TYPE", "DESTINATION")
-        out = out & StrDup(79, "-") & vbCrLf
-        For Each d As devs In DevList
-            out = out & String.Format(outF, d.DevName, d.DevType, d.ConnType, d.DevDest)
-        Next
-        out = out & StrDup(79, "-") & vbCrLf & vbCrLf
-        out = out & "END OF DEVICE LIST" & vbCrLf & vbCrLf
-        Return out
-    End Function
 
 
 
