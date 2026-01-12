@@ -1,8 +1,12 @@
 # ProjectPrinter
 
 Thanks to everyone on the Mainframe Enthusiasts Discord for putting up with my crap.  The MPE Forever discord for
-encouraging me to get on with the AOT stuff.  @racingmars for virtual1403 and the amazing green/blue bar pdf image.
+encouraging me to get on with the AOT stuff.  
+
+@racingmars for virtual1403 and the amazing green/blue bar pdf image.
+
 @Rudi for like.. everything.  The support, ideas and just being around to test crazy stuff.  Great guy!
+
 HFVMVS and PUBVM for running this code on their systems!  It's truly an honor to be allowed to run on 
 your networks.
 
