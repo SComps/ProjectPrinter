@@ -327,4 +327,14 @@ Module Program
 
 
 
+    Private Sub statTimer_Elapsed(sender As Object, e As Timers.ElapsedEventArgs) Handles statTimer.Elapsed
+        ' Check for disconnected devices and attempt to reconnect
+        For Each d As devs In DevList
+            If Not d.Connected Then
+                Log($"[{d.DevName}] Device disconnected. Attempting to reconnect...",, ConsoleColor.Yellow)
+                d.Connect()
+            End If
+        Next
+    End Sub
+
 End Module
