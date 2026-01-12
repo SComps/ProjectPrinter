@@ -772,13 +772,9 @@ Public Class devs
                                         font = New XFont("Chainprinter", fontSize)
 
                                         ' Reset text starting position
-                                        ' Align MVS/OS-specific firstline to the nearest 12pt boundary if possible, 
-                                        ' but we'll use StartLine * 12 for perfect grid alignment.
-                                        y = StartLine * lineHeight
-                                        currentLine = StartLine 
-                                        
-                                        ' We will check against (StartLine + linesPerPage) in the loop
-                                        Dim pageLimit As Integer = StartLine + linesPerPage
+                                        ' Standard behavior: use OS-specific firstline offset
+                                        y = firstline
+                                        currentLine = 0
                                     End Sub
 
             ' Initialize the first page
@@ -805,9 +801,8 @@ Public Class devs
                         InitializeNewPage()
                     End If
 
-                    ' Create a new page if current page is full (physical sheet is 66 lines)
-                    ' OR if the OS-specific logical limit is reached.
-                    If (currentLine >= 66) Or (currentLine >= (StartLine + linesPerPage)) Then
+                    ' Create a new page if current page is full
+                    If (currentLine >= linesPerPage) Then
                         InitializeNewPage()
                     End If
 
@@ -933,9 +928,11 @@ Public Class devs
         ' ============================================================
         ' STEP 2: Green Bands (0.5" height, Content Area ONLY)
         ' ============================================================
-        Dim currentY As Double = 0
-        Dim bandNum As Integer = 0
-        While currentY < pageHeight
+        ' The first 1 inch (6 lines at 6 LPI) is the unnumbered header area.
+        ' Content bands start at physical line 7 (72 points).
+        Dim currentY As Double = 72 
+        Dim bandNum As Integer = 1 ' 1 = Green, 0 = White
+        While currentY < (pageHeight - 1)
             If bandNum Mod 2 = 1 Then
                 ' Draw the green bar only in the printable center area
                 gfx.DrawRectangle(New XSolidBrush(bandGreen), contentStart, currentY, contentWidth, bandHeight)
@@ -958,16 +955,17 @@ Public Class devs
 
         ' ============================================================
         ' ============================================================
-        ' STEP 4: Margin Numbers
+        ' STEP 4: Margin Numbers (Starts at 1, ends at 60)
         ' ============================================================
         Dim marginFont As New XFont("Chainprinter", 5.5)
         Dim marginBrush As New XSolidBrush(markerGray)
         
-        ' Dynamically calculate how many lines fit on this potentially scaled page
-        Dim totalPossibleLines As Integer = CInt(Math.Floor(pageHeight / lpi6))
-        
-        For i As Integer = 1 To totalPossibleLines
-            Dim yPos As Double = (i - 1) * lpi6
+        ' The margin grid starts after the 1-inch header (physical line 7)
+        ' It runs for 60 lines to complete the 66-line page.
+        For i As Integer = 1 To 60
+            Dim physicalLine As Integer = 6 + i
+            Dim yPos As Double = (physicalLine - 1) * lpi6
+            
             ' Left Margin Numbers - Placed in the gutter
             gfx.DrawString(i.ToString(), marginFont, marginBrush, 
                           New XRect(tractorWidth, yPos, marginSpace, lpi6), XStringFormats.Center)
