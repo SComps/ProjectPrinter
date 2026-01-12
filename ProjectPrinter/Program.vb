@@ -60,6 +60,7 @@ Module Program
     Public logOut As Boolean = False
     Public ShowPanel As Boolean = False
     Public LastScreen As Integer = 0   '0 = Log, 1 = Panel
+    Public UseImageProc As Boolean = False
     Public WithEvents statTimer As New System.Timers.Timer
     Private ReadOnly cts As New CancellationTokenSource()
 
@@ -84,25 +85,46 @@ Module Program
         AddHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
         Dim version As String = "github.0.1.0-SI"
+        Dim isTest = False
+        Dim isVersion = False
         If args.Count > 0 Then
-            If args.Count = 1 And args(0).ToUpper = "VERSION" Then
-                Console.WriteLine("Project printer version: " & version.ToString & ". 2024,2025 As open source.")
-                Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
-                ShutDown()
-            End If
+            ' 1. Identify commands and flags from raw args
+            Dim filteredArgs As New List(Of String)
+            For Each arg In args
+                Dim lowerArg = arg.ToLower()
+                If lowerArg = "--imageproc" Then
+                    UseImageProc = True
+                ElseIf lowerArg = "test" Then
+                    isTest = True
+                ElseIf lowerArg = "version" Then
+                    isVersion = True
+                Else
+                    filteredArgs.Add(arg)
+                End If
+            Next
+            ' 2. Update args to only contain key:value pairs for CheckArgs
+            args = filteredArgs.ToArray()
         End If
+
         Console.WriteLine($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.")
         statTimer.Interval = 30000 '30 seconds
+        
+        ' 3. Process remaining parameters (e.g., config:xxx, logType:yyy)
         GlobalParms = CheckArgs(args)
-        If GlobalParms.Count = 0 Then
-            'This should absolutely never happen, but hey.
-            Console.WriteLine("No parameters defined, terminating.")
-            End
-        Else
-            'Process the parameters
-            ProcessParms(GlobalParms)
+        ProcessParms(GlobalParms)
 
+        If isVersion Then
+            Console.WriteLine("Project printer version: " & version.ToString & ". 2024,2025 As open source.")
+            Console.WriteLine("This project has no warranty at all.  Nothing.  If it breaks, you own both pieces.")
+            ShutDown()
+            Return
         End If
+        If isTest Then
+            ' Run the greenbar background test
+            TestGreenbar.RunTest()
+            Return
+        End If
+
         If Not File.Exists(configFile) Then
             Dim fs As FileStream = File.Open(configFile, FileMode.Create)
             fs.Close()

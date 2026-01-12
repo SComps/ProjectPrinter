@@ -707,9 +707,9 @@ Public Class devs
                 StartLine = 5
             End If
 
-            ' Define margins (1/2 inch for left and right margins)
-            Dim leftMargin As Double = 30 ' 1/2 inch margin
-            Dim rightMargin As Double = 30 ' 1/2 inch margin
+            ' Aligned with DrawGreenBarBackground contentStart (40)
+            Dim leftMargin As Double = 40 
+            Dim rightMargin As Double = 40 
             Dim availableWidth As Double ' Width for text after margins
             Dim fontSize As Double
             Dim font As XFont = Nothing ' Font will be initialized later
@@ -725,45 +725,64 @@ Public Class devs
             Dim InitializeNewPage = Sub()
                                         ' Initialize the page
                                         page = doc.AddPage()
+                                        
+                                        ' Standard 6 LPI (Lines Per Inch) spacing is 12 points
+                                        lineHeight = 12
+                                        
+                                        ' Scale the page height to accommodate (StartLine + linesPerPage) total slots
+                                        ' This ensures we can fit exactly linesPerPage lines of content after the offset.
+                                        Dim totalLinesThisPage As Integer = StartLine + linesPerPage
+                                        Dim targetHeightPoints As Double = totalLinesThisPage * lineHeight
+                                        
+                                        ' Set wide carriage width (14.875") and scaled height
+                                        page.Width = XUnit.FromInch(14.875)
+                                        page.Height = XUnit.FromPoint(targetHeightPoints)
+                                        
                                         If Orientation <= 1 Then
                                             page.Orientation = PdfSharp.PageOrientation.Landscape
                                         Else
                                             page.Orientation = PdfSharp.PageOrientation.Portrait
+                                            ' Swap dimensions for portrait mode
+                                            Dim tempWidth As XUnit = page.Width
+                                            page.Width = page.Height
+                                            page.Height = tempWidth
                                         End If
 
                                         ' Initialize graphics context for this page
                                         gfx = XGraphics.FromPdfPage(page)
 
-                                        ' Draw background image to cover entire page
+                                        ' Draw background 
                                         If (Orientation = 0) Or (Orientation = 2) Then
-                                            gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                            If Program.UseImageProc Then
+                                                ' Fallback to old image-based processing
+                                                gfx.DrawImage(bkgrd, 0, 0, page.Width.Point, page.Height.Point)
+                                            Else
+                                                ' Default programmatic drawing
+                                                DrawGreenBarBackground(gfx, page.Width.Point, page.Height.Point)
+                                            End If
                                         End If
-                                        'DrawGreenBarBackground(gfx, availableWidth, page.Height.Point)
+
                                         ' Recalculate available width for text after margins
                                         availableWidth = page.Width.Point - leftMargin - rightMargin
 
-                                        ' Initialize font with a temporary size
+                                        ' Initialize font and scale size
                                         font = New XFont("Chainprinter", 12)
-
-                                        ' Calculate font size based on available width to fit 132 characters per line
-                                        ' Measure the width of a single character (e.g., "W") at font size to estimate scaling
                                         Dim charWidth As Double = gfx.MeasureString("W", font).Width
                                         If Orientation <= 1 Then
-                                            fontSize = availableWidth / (charWidth * 132) * 12 ' Scaling factor to fit 132 characters per line
+                                            fontSize = availableWidth / (charWidth * 132) * 12
                                         Else
                                             fontSize = availableWidth / (charWidth * 80) * 12
                                         End If
-
-                                        ' Update font with the correct size
                                         font = New XFont("Chainprinter", fontSize)
 
-                                        ' Calculate line height based on 66 lines per page
-                                        Dim newHeight As Double = page.Height.Point / 66
-                                        lineHeight = (newHeight)
-
                                         ' Reset text starting position
-                                        y = firstline
-                                        currentLine = StartLine
+                                        ' Align MVS/OS-specific firstline to the nearest 12pt boundary if possible, 
+                                        ' but we'll use StartLine * 12 for perfect grid alignment.
+                                        y = StartLine * lineHeight
+                                        currentLine = StartLine 
+                                        
+                                        ' We will check against (StartLine + linesPerPage) in the loop
+                                        Dim pageLimit As Integer = StartLine + linesPerPage
                                     End Sub
 
             ' Initialize the first page
@@ -791,7 +810,7 @@ Public Class devs
                     End If
 
                     ' Create a new page if current page is full
-                    If currentLine >= linesPerPage Then
+                    If currentLine >= (StartLine + linesPerPage) Then
                         InitializeNewPage()
                     End If
 
@@ -886,51 +905,115 @@ Public Class devs
 
     ' EXPERIMENTAL
 
+    ''' <summary>
+    ''' Draws a greenbar paper background that accurately replicates greenbar.jpg.
+    ''' Constraints: Green bands only in printable area, no individual line rules, 1/2" bands.
+    ''' </summary>
     Public Sub DrawGreenBarBackground(ByVal gfx As XGraphics, ByVal pageWidth As Double, ByVal pageHeight As Double)
-        ' Define colors for the stripes
-        Dim whiteColor As XColor = XColors.White
-        Dim greenColor As XColor = XColor.FromArgb(232, 255, 232) ' Light green
+        ' ============================================================
+        ' COLOR DEFINITIONS
+        ' ============================================================
+        Dim paperWhite As XColor = XColors.White
+        Dim bandGreen As XColor = XColor.FromArgb(215, 240, 215)  ' Pale green band
+        Dim markerGray As XColor = XColor.FromArgb(180, 180, 180)  ' For text and lines
+        Dim holeShadow As XColor = XColor.FromArgb(235, 235, 235)  ' Light shading for holes
 
-        ' Define stripe heights (in points, approximated from image analysis)
-        Dim whiteStripeHeight As Double = 49 * 72 / 96 ' Convert 49 pixels to points (assuming 96 DPI)
-        Dim greenStripeHeight As Double = 16 * 72 / 96 ' Convert 16 pixels to points (assuming 96 DPI)
+        ' ============================================================
+        ' LAYOUT CONSTANTS (DPI = 72)
+        ' ============================================================
+        Dim tractorWidth As Double = 30                            ' Width of tractor surface
+        Dim marginSpace As Double = 10                             ' Space for numbers (reduced)
+        Dim contentStart As Double = tractorWidth + marginSpace    ' Where bands/print start (40)
+        Dim contentWidth As Double = pageWidth - (contentStart * 2)
+        Dim bandHeight As Double = 36                              ' 1/2 inch bands
+        Dim lpi6 As Double = 12                                    ' 1/6 inch text lines
+        
+        ' ============================================================
+        ' STEP 1: Paper Surface
+        ' ============================================================
+        gfx.DrawRectangle(New XSolidBrush(paperWhite), 0, 0, pageWidth, pageHeight)
 
-        ' Start drawing from the top of the page
+        ' ============================================================
+        ' STEP 2: Green Bands (0.5" height, Content Area ONLY)
+        ' ============================================================
         Dim currentY As Double = 0
-
-        ' Loop to fill the page with alternating stripes
+        Dim bandNum As Integer = 0
         While currentY < pageHeight
-            ' Draw white stripe
-            gfx.DrawRectangle(New XSolidBrush(whiteColor), 0, currentY, pageWidth, whiteStripeHeight)
-            currentY += whiteStripeHeight
-
-            ' Check if we're still within the page height
-            If currentY >= pageHeight Then Exit While
-
-            ' Draw green stripe
-            gfx.DrawRectangle(New XSolidBrush(greenColor), 0, currentY, pageWidth, greenStripeHeight)
-            currentY += greenStripeHeight
+            If bandNum Mod 2 = 1 Then
+                ' Draw the green bar only in the printable center area
+                gfx.DrawRectangle(New XSolidBrush(bandGreen), contentStart, currentY, contentWidth, bandHeight)
+            End If
+            currentY += bandHeight
+            bandNum += 1
         End While
 
-        ' Optional: Draw vertical perforation marks on the left and right edges
-        Dim dotSpacing As Double = 10 * 72 / 96 ' Approximate spacing between dots in points
-        Dim dotDiameter As Double = 2 * 72 / 96 ' Approximate dot size in points
-        Dim dotColor As XColor = XColors.Gray
+        ' ============================================================
+        ' STEP 3: Vertical Boundaries
+        ' ============================================================
+        Dim linePen As New XPen(markerGray, 0.5)
+        ' Internal box for printable area
+        gfx.DrawLine(linePen, contentStart, 0, contentStart, pageHeight)
+        gfx.DrawLine(linePen, contentStart + contentWidth, 0, contentStart + contentWidth, pageHeight)
+        
+        ' External boundary for tractor area
+        gfx.DrawLine(linePen, tractorWidth, 0, tractorWidth, pageHeight)
+        gfx.DrawLine(linePen, pageWidth - tractorWidth, 0, pageWidth - tractorWidth, pageHeight)
 
-        ' Left edge perforations
-        Dim currentDotY As Double = 0
-        While currentDotY < pageHeight
-            gfx.DrawEllipse(New XSolidBrush(dotColor), 0, currentDotY, dotDiameter, dotDiameter)
-            currentDotY += dotSpacing
-        End While
+        ' ============================================================
+        ' ============================================================
+        ' STEP 4: Margin Numbers
+        ' ============================================================
+        Dim marginFont As New XFont("Chainprinter", 5.5)
+        Dim marginBrush As New XSolidBrush(markerGray)
+        
+        ' Dynamically calculate how many lines fit on this potentially scaled page
+        Dim totalPossibleLines As Integer = CInt(Math.Floor(pageHeight / lpi6))
+        
+        For i As Integer = 1 To totalPossibleLines
+            Dim yPos As Double = (i - 1) * lpi6
+            ' Left Margin Numbers - Placed in the gutter
+            gfx.DrawString(i.ToString(), marginFont, marginBrush, 
+                          New XRect(tractorWidth, yPos, marginSpace, lpi6), XStringFormats.Center)
+            ' Right Margin Numbers
+            gfx.DrawString(i.ToString(), marginFont, marginBrush, 
+                          New XRect(pageWidth - tractorWidth - marginSpace, yPos, marginSpace, lpi6), XStringFormats.Center)
+        Next
 
-        ' Right edge perforations
-        currentDotY = 0
-        Dim rightEdgeX As Double = pageWidth - dotDiameter
-        While currentDotY < pageHeight
-            gfx.DrawEllipse(New XSolidBrush(dotColor), rightEdgeX, currentDotY, dotDiameter, dotDiameter)
-            currentDotY += dotSpacing
-        End While
+        ' ============================================================
+        ' STEP 5: Tractor Holes (Standard 0.5 inch spacing)
+        ' ============================================================
+        Dim holeRadius As Double = 4.5
+        Dim centerLine As Double = tractorWidth / 2
+        
+        ' Draw holes for every 1/2 inch that fits on the page area
+        For y As Double = 18 To pageHeight Step 36
+            ' Left Hole
+            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow), 
+                            centerLine - holeRadius, y - holeRadius, holeRadius * 2, holeRadius * 2)
+            ' Right Hole
+            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow), 
+                            pageWidth - centerLine - holeRadius, y - holeRadius, holeRadius * 2, holeRadius * 2)
+        Next
+
+        ' ============================================================
+        ' STEP 6: Top Alignment Mark (Circle + Diamond + Crosshair)
+        ' ============================================================
+        Dim markX As Double = centerLine
+        Dim markY As Double = 18
+        Dim sz As Double = 9
+        
+        ' Crosshair
+        gfx.DrawLine(linePen, markX - sz, markY, markX + sz, markY)
+        gfx.DrawLine(linePen, markX, markY - sz, markX, markY + sz)
+        ' Circle
+        gfx.DrawEllipse(linePen, markX - (sz * 0.8), markY - (sz * 0.8), sz * 1.6, sz * 1.6)
+        ' Diamond
+        Dim dia As XPoint() = {
+            New XPoint(markX, markY - sz), New XPoint(markX + sz, markY),
+            New XPoint(markX, markY + sz), New XPoint(markX - sz, markY)
+        }
+        gfx.DrawPolygon(linePen, dia)
+
     End Sub
 
     Public Sub OldDrawBackgroundTemplate(gfx As XGraphics, drawBG As Boolean, dark As XColor, light As XColor)
