@@ -165,8 +165,8 @@ Public Class devs
         JobNumber = JobNumber + 1
         Dim lines As New List(Of String)()
         Dim currentLine As New StringBuilder()
-        Dim dataStream As String = $"{OutDest}/{DevName}--{Now.Ticks}--{JobNumber}.dst"
-        Dim swriter As New StreamWriter(dataStream)
+        'Dim dataStream As String = $"{OutDest}/{DevName}--{Now.Ticks}--{JobNumber}.dst"
+        'Dim swriter As New StreamWriter(dataStream)
         ' Process each character in the full data
         ' CR = MOVE HEAD TO HOME POSITION (Useless in our situation)
         ' LF = ADVANCE ONE LINE. (we'll assume a CR is paired with it)
@@ -175,12 +175,12 @@ Public Class devs
         'Stop
         For Each c As Char In documentData
             ' Output to the dst file
-            Dim o As String = c
-            o = o.Replace(vbCr, "<CR>")
-            o = o.Replace(vbLf, "<LF>")
-            o = o.Replace(vbFormFeed, "<FF>")
-            swriter.Write(o)
-            Debug.Write(o)
+            'Dim o As String = c
+            'o = o.Replace(vbCr, "<CR>")
+            'o = o.Replace(vbLf, "<LF>")
+            'o = o.Replace(vbFormFeed, "<FF>")
+            'swriter.Write(o)
+            'Debug.Write(o)
             If ignoreChars = 0 Then
                 Select Case c
                     Case vbCr
@@ -222,8 +222,8 @@ Public Class devs
 
 
         Next
-        swriter.Flush()
-        swriter.Close()
+        'swriter.Flush()
+        'swriter.Close()
 
         ' Add any remaining line data
         If currentLine.Length > 0 Then
@@ -244,8 +244,8 @@ Public Class devs
             lines.RemoveAt(lines.Count - 1)   ' Just get rid of it.
         End If
         If lines.Count <= 10 Then
-            File.Delete(dataStream)
-            Program.Log($"[{DevName}] removed garbage datastream file.")
+            'File.Delete(dataStream)
+            'Program.Log($"[{DevName}] removed garbage datastream file.")
         End If
         ' Process the complete lines (document)
         If (lines.Any()) And (lines.Count > 9) Then
