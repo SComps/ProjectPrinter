@@ -186,7 +186,7 @@ Module dev_console
         Say(bannerLine, 0, 0, ConsoleColor.White)
         Say(CenterString($"E D I T   D E V I C E", max_Cols), 0, 1, ConsoleColor.White)
         Say(bannerLine, 0, 2, ConsoleColor.White)
-        Say("OS: (0) MVS38J (1) VMS  (2) MPE (3) RSTS/E (4) VM/370 (5) NOS 2.7.8", 1, max_Rows - 2, ConsoleColor.White)
+        Say("OS: 0:MVS38J 1:VMS 2:MPE 3:RSTS 4:VM370 5:NOS278 6:VMSP 7:XENIX 8:ZOS", 1, max_Rows - 2, ConsoleColor.White)
         Say("[ENTER] Accept line", 1, max_Rows - 1, ConsoleColor.Green)
         Say("TAB/arrows DO NOT CHANGE FIELD", 22, max_Rows - 1, ConsoleColor.Red)
         Say("       DEVICE NAME:", 5, 3, ConsoleColor.Cyan)

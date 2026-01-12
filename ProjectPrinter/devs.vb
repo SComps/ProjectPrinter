@@ -709,8 +709,8 @@ Public Class devs
             End If
 
             ' Aligned with DrawGreenBarBackground contentStart (40)
-            Dim leftMargin As Double = 40 
-            Dim rightMargin As Double = 40 
+            Dim leftMargin As Double = 40
+            Dim rightMargin As Double = 40
             Dim availableWidth As Double ' Width for text after margins
             Dim fontSize As Double
             Dim font As XFont = Nothing ' Font will be initialized later
@@ -726,14 +726,14 @@ Public Class devs
             Dim InitializeNewPage = Sub()
                                         ' Initialize the page
                                         page = doc.AddPage()
-                                        
+
                                         ' Standard 6 LPI (Lines Per Inch) spacing is 12 points
                                         lineHeight = 12
-                                        
+
                                         ' Standard greenbar paper is 11 inches tall (66 lines at 6 LPI)
                                         page.Width = XUnit.FromInch(14.875)
                                         page.Height = XUnit.FromInch(11)
-                                        
+
                                         If Orientation <= 1 Then
                                             page.Orientation = PdfSharp.PageOrientation.Landscape
                                         Else
@@ -817,42 +817,42 @@ Public Class devs
                         End If
 
                         If line.Contains(Chr(13)) Then
-                                ' Split the line by CR characters (we will handle the overstrike behavior here)
-                                Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
+                            ' Split the line by CR characters (we will handle the overstrike behavior here)
+                            Dim segments As List(Of String) = line.Split(Chr(13)).ToList()
 
-                                ' Track the current starting position for drawing
-                                Dim currentX As Double = leftMargin
-                                If (segments.Count > 1) And (segments(1).Trim <> "") Then
-                                    'Program.Log($"Segment count is {segments.Count}")
-                                    ' Iterate through the segments
-                                    Dim segIdx As Integer = 0
-                                    Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
-                                    For Each segment As String In segments
-                                        'Program.Log($"{segment}")
-                                        If Not String.IsNullOrEmpty(segment) Then
-                                            ' Draw the base text segment at the starting position
+                            ' Track the current starting position for drawing
+                            Dim currentX As Double = leftMargin
+                            If (segments.Count > 1) And (segments(1).Trim <> "") Then
+                                'Program.Log($"Segment count is {segments.Count}")
+                                ' Iterate through the segments
+                                Dim segIdx As Integer = 0
+                                Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
+                                For Each segment As String In segments
+                                    'Program.Log($"{segment}")
+                                    If Not String.IsNullOrEmpty(segment) Then
+                                        ' Draw the base text segment at the starting position
+                                        gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                                        If segIdx > 0 Then
+                                            ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
                                             gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                            If segIdx > 0 Then
-                                                ' Overprint the segment (with a 'myoffset' horizontal offset) by printing it again
-                                                gfx.DrawString(segment, font, XBrushes.Black, New XRect(currentX, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                            End If
-                                            segIdx += 1
                                         End If
-                                    Next
-                                Else
-                                    'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
-                                    ' The second segment is blank, so just write it as usual.
-                                    gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
-                                End If
+                                        segIdx += 1
+                                    End If
+                                Next
                             Else
-                                ' If there are no CRs, just print the line normally
+                                'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
+                                ' The second segment is blank, so just write it as usual.
                                 gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                             End If
+                        Else
+                            ' If there are no CRs, just print the line normally
+                            gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
+                        End If
 
                         ' Move down for the next line
                         y += lineHeight
-                            currentLine += 1
-                        End If
+                        currentLine += 1
+                    End If
                 Catch ex As Exception
                     ' Handle errors (e.g., invalid characters or drawing issues)
                 End Try
@@ -895,7 +895,7 @@ Public Class devs
 
     End Sub
 
-    ' EXPERIMENTAL
+
 
     ''' <summary>
     ''' Draws a greenbar paper background that accurately replicates greenbar.jpg.
@@ -919,7 +919,7 @@ Public Class devs
         Dim contentWidth As Double = pageWidth - (contentStart * 2)
         Dim bandHeight As Double = 36                              ' 1/2 inch bands
         Dim lpi6 As Double = 12                                    ' 1/6 inch text lines
-        
+
         ' ============================================================
         ' STEP 1: Paper Surface
         ' ============================================================
@@ -930,7 +930,7 @@ Public Class devs
         ' ============================================================
         ' The first 1 inch (6 lines at 6 LPI) is the unnumbered header area.
         ' Content bands start at physical line 7 (72 points).
-        Dim currentY As Double = 72 
+        Dim currentY As Double = 72
         Dim bandNum As Integer = 1 ' 1 = Green, 0 = White
         While currentY < (pageHeight - 1)
             If bandNum Mod 2 = 1 Then
@@ -948,7 +948,7 @@ Public Class devs
         ' Internal box for printable area
         gfx.DrawLine(linePen, contentStart, 0, contentStart, pageHeight)
         gfx.DrawLine(linePen, contentStart + contentWidth, 0, contentStart + contentWidth, pageHeight)
-        
+
         ' External boundary for tractor area
         gfx.DrawLine(linePen, tractorWidth, 0, tractorWidth, pageHeight)
         gfx.DrawLine(linePen, pageWidth - tractorWidth, 0, pageWidth - tractorWidth, pageHeight)
@@ -959,18 +959,18 @@ Public Class devs
         ' ============================================================
         Dim marginFont As New XFont("Chainprinter", 5.5)
         Dim marginBrush As New XSolidBrush(markerGray)
-        
+
         ' The margin grid starts after the 1-inch header (physical line 7)
         ' It runs for 60 lines to complete the 66-line page.
         For i As Integer = 1 To 60
             Dim physicalLine As Integer = 6 + i
             Dim yPos As Double = (physicalLine - 1) * lpi6
-            
+
             ' Left Margin Numbers - Placed in the gutter
-            gfx.DrawString(i.ToString(), marginFont, marginBrush, 
+            gfx.DrawString(i.ToString(), marginFont, marginBrush,
                           New XRect(tractorWidth, yPos, marginSpace, lpi6), XStringFormats.Center)
             ' Right Margin Numbers
-            gfx.DrawString(i.ToString(), marginFont, marginBrush, 
+            gfx.DrawString(i.ToString(), marginFont, marginBrush,
                           New XRect(pageWidth - tractorWidth - marginSpace, yPos, marginSpace, lpi6), XStringFormats.Center)
         Next
 
@@ -979,14 +979,14 @@ Public Class devs
         ' ============================================================
         Dim holeRadius As Double = 4.5
         Dim centerLine As Double = tractorWidth / 2
-        
+
         ' Draw holes for every 1/2 inch that fits on the page area
         For y As Double = 18 To pageHeight Step 36
             ' Left Hole
-            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow), 
+            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow),
                             centerLine - holeRadius, y - holeRadius, holeRadius * 2, holeRadius * 2)
             ' Right Hole
-            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow), 
+            gfx.DrawEllipse(linePen, New XSolidBrush(holeShadow),
                             pageWidth - centerLine - holeRadius, y - holeRadius, holeRadius * 2, holeRadius * 2)
         Next
 
@@ -996,7 +996,7 @@ Public Class devs
         Dim markX As Double = centerLine
         Dim markY As Double = 18
         Dim sz As Double = 9
-        
+
         ' Crosshair
         gfx.DrawLine(linePen, markX - sz, markY, markX + sz, markY)
         gfx.DrawLine(linePen, markX, markY - sz, markX, markY + sz)
