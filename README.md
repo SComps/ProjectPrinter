@@ -33,7 +33,8 @@ racingmars definitely deserves that credit.
 1/12/36
 Some fairly large changes.  Added Z/OS and Tandy's XENIX to the supported operating system list.
 
-```(0) OS_MVS38J           ' IBM MVS 3.8J or OSVS2
+```
+(0) OS_MVS38J           ' IBM MVS 3.8J or OSVS2
 (1) OS_VMS              ' VAX and ALPHA VMS/OpenVMS
 (2) OS_MPE              ' HP 3000 MPE
 (3) OS_RSTS             ' DEC PDP-11 RSTS/E
