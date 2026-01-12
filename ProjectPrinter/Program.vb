@@ -1,5 +1,4 @@
 
-' // SINGLE INSTANCE BRANCH MODIFIED
 
 Imports System.IO
 Imports System.Net
@@ -111,8 +110,11 @@ Module Program
         LoadDevices()
         statTimer.Enabled = True
         Running = True
-        Console.WriteLine("Starting printers.  Please keep this terminal open.")
-        Console.WriteLine("Activity is being logged to printer.log")
+        If logType <> "none" And logType <> "default" Then
+            Console.WriteLine("Starting printers.  Please keep this terminal open.")
+            Console.WriteLine("If you wish to view the log on this screen, use the parameter `logType:default`")
+            Console.WriteLine($"Activity is being logged to {logType}")
+        End If
         Task.Run(Sub() DoBackgroundWork(cts.Token))
         Try
             cts.Token.WaitHandle.WaitOne()
@@ -175,15 +177,16 @@ Module Program
     End Function
 
     Sub ProcessParms(parmList As List(Of parmStruct))
-        Dim newCfg As String = "devices.cfg"        ' Set up some sane defaults.
+        Console.WriteLine(Environment.ProcessPath)
+        Dim newCfg As String = "devices.dat"        ' Set up some sane defaults.
         Dim newLogType As String = "printers.log"
         For Each p As parmStruct In parmList
 
-            Select Case p.arg
+            Select Case p.arg.ToLower
                 Case "config"
                     newCfg = p.value
                     Log(String.Format(parmDefined, p.arg, p.value), False)
-                Case "logType"
+                Case "logtype"
                     newLogType = p.value
                     Log(String.Format(parmDefined, p.arg, p.value), False)
                     If p.value = "none" Then
@@ -226,7 +229,7 @@ Module Program
         logOut = True
         If logType = "" Then
             ' It's not defined, so assume default
-            logType = "default"
+            logType = "printers.log"
         End If
 
         Select Case logType
@@ -320,15 +323,6 @@ Module Program
         End If
     End Sub
 
-    Sub SaveDevices()
-        Using writer As New StreamWriter(configFile, append:=False)
-            For Each d As devs In DevList
-                writer.WriteLine($"{d.DevName}||{d.DevDescription}||{d.DevType}||{d.ConnType}||{d.DevDest}||{d.OS}||{d.Auto}||" &
-                    $"{d.PDF}||{d.Orientation}||{d.OutDest}")
-            Next
-        End Using
-
-    End Sub
 
 
 

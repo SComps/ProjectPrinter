@@ -47,6 +47,9 @@ Public Class devs
         Dim thisPort As Integer
         Dim splitDev As String()
         splitDev = dest.Split(":")
+        If splitDev.Count = 1 Then
+            Throw (New Exception($"Error: malformed destination {dest}"))
+        End If
         thisHost = splitDev(0)
         thisPort = Val(splitDev(1))
         If thisHost.Trim <> "" Then

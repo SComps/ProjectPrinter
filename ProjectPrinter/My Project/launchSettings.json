@@ -1,7 +1,8 @@
 {
   "profiles": {
     "ProjectPrinter": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "logType:default"
     }
   }
 }
