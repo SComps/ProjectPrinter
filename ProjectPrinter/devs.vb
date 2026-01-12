@@ -648,13 +648,15 @@ Public Class devs
             If OS = OSType.OS_MVS38J Then
                 Program.Log($"Setting page for MVS 3.8J")
                 firstline = 45
-                linesPerPage = 66
+                ' Standard page is 66 lines. If we skip 5, we have 61 lines left for content.
+                linesPerPage = 61
                 StartLine = 5
             End If
 
             If OS = OSType.OS_RSTS Then
                 Program.Log($"Setting page for RSTS/E")
                 firstline = 27
+                ' Standard 66 line page
                 linesPerPage = 66
                 StartLine = 0
             End If
@@ -729,14 +731,9 @@ Public Class devs
                                         ' Standard 6 LPI (Lines Per Inch) spacing is 12 points
                                         lineHeight = 12
                                         
-                                        ' Scale the page height to accommodate (StartLine + linesPerPage) total slots
-                                        ' This ensures we can fit exactly linesPerPage lines of content after the offset.
-                                        Dim totalLinesThisPage As Integer = StartLine + linesPerPage
-                                        Dim targetHeightPoints As Double = totalLinesThisPage * lineHeight
-                                        
-                                        ' Set wide carriage width (14.875") and scaled height
+                                        ' Standard greenbar paper is 11 inches tall (66 lines at 6 LPI)
                                         page.Width = XUnit.FromInch(14.875)
-                                        page.Height = XUnit.FromPoint(targetHeightPoints)
+                                        page.Height = XUnit.FromInch(11)
                                         
                                         If Orientation <= 1 Then
                                             page.Orientation = PdfSharp.PageOrientation.Landscape
