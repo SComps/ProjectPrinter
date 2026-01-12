@@ -1,5 +1,31 @@
 # ProjectPrinter
 
+Thanks to everyone on the Mainframe Enthusiasts Discord for putting up with my crap.  The MPE Forever for
+encouraging me to get on with the AOT stuff.  @racingmars for virtual1403 and the amazing green/blue bar pdf image.
+@Rudi for like.. everything.  The support, ideas and just being around to test crazy stuff.  Great guy!
+HFVMVS and PUBVM for running this code on their systems!  It's truly an honor to be allowed to run on 
+your networks.
+
+This project attempts to reasonably emulate a line printer from mainframes and mini computers
+of our great past.  From the big boy 1403's on IBM mainframes, to the workhorses on DEC's
+VAX and ALPHA systems, the printers that cranked along on DEC's PDP-11's running RSTS/E,
+and of course the printers servicing the venerable HP 3000 running MPE.  The reams of
+fanfold greenbar paper are a distant memory that this project hopefully brings back with
+a smile.  It was developed on a Windows 10 system, however we've gotten it to build on
+linux with .NET 9, and even the Raspberry Pi 5.  It can handle a number of simultaneous 
+printers, and seems to perform reasonably well when several printers are running concurrently.
+
+There are two projects in this repo.  
+
+ProjectPrinter is the server code.  Output pdf's and txt files are deposited in the
+configured directory (see device_config) 
+
+This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
+polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
+so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
+racingmars definitely deserves that credit.  
+
+
 1/12/36
 Some fairly large changes.  Added Z/OS and Tandy's XENIX to the supported operating system list.
 
@@ -31,31 +57,6 @@ Note reprints will generate the same output and job filenames as previous.  If y
 
 Due to an issue with AOT, the XML configuration file system has been scrapped.  Now it's a custom text file readable by the applications.  It's no longer devices.cfg (to avoid confusion) but devices.dat.  You will need to reconfigure all your devices.  Note there is now an Orientation and Output Directory option for device configuration.  Orientation is still in progress, Portrait (80 column) is working now but imperfectly.  It's recommended that you use the orientation of 4 to do portrait without the background as the green bar background is not accurately depicted.  Additionally it can now place the output PDF and TXT files in a specific folder or directory.  Each printer can have it's own output directory to allow you to separate jobs by printer.  When you configure this path, it can be both absolute or relative.  Leave off the final slash.  It'll strip it off if it sees it, but why bother if you don't have to.
 
-The google drive now has AOT packages for x64 linux, arm 64 and Windows 64.  There is a natively built Debian 12 package there as well; however I noticed the generic linux-x64 worked just fine too.
-
-A .NET 9.0 project written in Visual Basic .NET similar to Virtual1403.
-
-This project attempts to reasonably emulate a line printer from mainframes and mini computers
-of our great past.  From the big boy 1403's on IBM mainframes, to the workhorses on DEC's
-VAX and ALPHA systems, the printers that cranked along on DEC's PDP-11's running RSTS/E,
-and of course the printers servicing the venerable HP 3000 running MPE.  The reams of
-fanfold greenbar paper are a distant memory that this project hopefully brings back with
-a smile.  It was developed on a Windows 10 system, however we've gotten it to build on
-linux with .NET 9, and even the Raspberry Pi 5.  It can handle a number of simultaneous 
-printers, and seems to perform reasonably well when several printers are running concurrently.
-
-The last manual AOT builds I've done are stored in the Google drive link below.  They may or may not be built from the current commit here.
-
-[Click here to access the folder on my Google Drive](https://drive.google.com/drive/folders/1-aCWr1JMhf7zmtW9EJ3QdICv3WfYTBh0?usp=sharing)
-
-While there are a bunch of other unrelated files on the google drive, you may play with anything there that interests you.  Anything you get from there is explicitly your own responsibility.  Chances are there will be no further development on any of that stuff, and you're essentially on your own.
-
-
-There's three projects in this repo.  
-
-ProjectPrinter is the server code.  Output pdf's and txt files are deposited in the
-executable files directory.  This will be configurable in the future.
-
   Operating systems currently supported are:
                           
                           VMS (VAX and ALPHA on TTA0: serial connection via simH)
@@ -73,18 +74,5 @@ executable files directory.  This will be configurable in the future.
                                 
                           NOS 2.7.8 (Control Data Corp.)
 
-device_config is a console device configuration utility (working).
-
-ProjectPrinterManager is nowhere near working or complete, and not a part of any current build.  The code is still here however, so if you want to play with it feel free.
-
-This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
-polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
-so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
-racingmars definitely deserves that credit.  
-
-A big thanks to the guys on the MPE Forever! Discord for checking things out and making some great suggestions!
-
-If it weren't for them, I wouldn't have been motivated to research and struggle through the AOT modifications.  It was worth every nanosecond.
-
-Rudi has suggested and started work on a Portrait orientation for output as well.  I'm looking forward to seeing how that works out.  Stay tuned!
+device_config is a console device configuration utility.
 
