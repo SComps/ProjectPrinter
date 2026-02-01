@@ -48,13 +48,15 @@ Module Program
     Const parmInvalid As String = "Invalid parameter {0}:{1}"
 
     Public DevList As New List(Of devs)
+    Public DevRetries(255) As Integer
     Public StageList As New List(Of devs)
     Public GlobalParms As New List(Of parmStruct)
+    Public configDate As Date
     Public configFile As String = "devices.dat"
     Public cmdPort As Integer = 0
     Public logType As String = "printers.log"
     Public logList As New List(Of LogEntry) 'Holds the last 500 log messages
-    Public RemoteCommand As TcpListener
+    'Public RemoteCommand As TcpListener
 
     Public Running As Boolean = True
     Public logOut As Boolean = False
@@ -82,6 +84,9 @@ Module Program
     End Sub
 
     Public Sub Main(args As String())
+        For Each i As Integer In DevRetries
+            i = 0
+        Next
         AddHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
         Dim version As String = "github.0.1.0-SI"
@@ -129,6 +134,7 @@ Module Program
             Dim fs As FileStream = File.Open(configFile, FileMode.Create)
             fs.Close()
         End If
+        configDate = File.GetLastWriteTime(configFile)
         LoadDevices()
         statTimer.Enabled = True
         Running = True
@@ -353,10 +359,25 @@ Module Program
         ' Check for disconnected devices and attempt to reconnect
         For Each d As devs In DevList
             If Not d.Connected Then
-                Log($"[{d.DevName}] Device disconnected. Attempting to reconnect...",, ConsoleColor.Yellow)
-                d.Connect()
+                Dim i As Integer = DevList.IndexOf(d)
+                Dim retries As Integer = DevRetries(i)
+                If retries > 14 Then
+                    Log($"[{d.DevName}] Device disconnected. Attempting to reconnect...",, ConsoleColor.Yellow)
+                    d.Connect()
+                    DevRetries(i) = 0
+                Else
+                    DevRetries(i) += 1
+                    'Console.WriteLine($"{d.DevName} is not connected. {DevRetries(i)} seconds.")
+                End If
             End If
         Next
+        Dim currentDate As Date = File.GetLastWriteTime(configFile)
+        If currentDate > configDate Then
+            Log($"Configuration file has changed, reloading devices.")
+            LoadDevices()
+            configDate = currentDate
+            Log($"Devices reloaded, configuration is now stamped {configDate}.")
+        End If
     End Sub
 
 End Module
