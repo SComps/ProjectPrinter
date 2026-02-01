@@ -107,8 +107,8 @@ Module Program
         End If
 
         Console.WriteLine($"ProjectPrinter version {version.ToString}. 2024,2025 As open source. No warranties, express or implied.")
-        statTimer.Interval = 30000 '30 seconds
-        
+        statTimer.Interval = 1000 '30 seconds
+
         ' 3. Process remaining parameters (e.g., config:xxx, logType:yyy)
         GlobalParms = CheckArgs(args)
         ProcessParms(GlobalParms)
