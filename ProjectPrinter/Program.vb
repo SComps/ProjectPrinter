@@ -333,6 +333,12 @@ Module Program
 
     Sub LoadDevices()
         ' Unload all devices.
+        For Each d As devs In DevList
+            If d.Connected Then
+                d.Disconnect()
+                Log($"Disconnecting device {d.DevName} in preparation of a device load.")
+            End If
+        Next
         DevList.Clear()
         Log("Clearing device list.",, ConsoleColor.Yellow)
         ' Reload from the file
