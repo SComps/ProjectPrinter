@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectPrinter Suite - User Manual</title>
+    <style>
+        @page {
+            margin: 0;
+            size: auto;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            /* Acts as margin when @page margin is 0 */
+            padding-top: 60px;
+            /* Extra top space */
+            padding-bottom: 60px;
+            /* Extra bottom space */
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+
+        h3 {
+            color: #16a085;
+        }
+
+        code {
+            background-color: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #e74c3c;
+        }
+
+        pre {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        pre code {
+            background-color: transparent;
+            border: none;
+            color: #ecf0f1;
+            padding: 0;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        blockquote {
+            background: #f9f9f9;
+            border-left: 10px solid #ccc;
+            margin: 1.5em 10px;
+            padding: 0.5em 10px;
+        }
+
+        .note {
+            background-color: #e8f6f3;
+            border-left: 5px solid #1abc9c;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>ProjectPrinter Suite - Comprehensive Manual</h1>
+
+    <h2>1. Introduction</h2>
+    <p><strong>ProjectPrinter</strong> is a professional-grade virtual line printer emulator designed for mainframe and
+        minicomputer enthusiasts. It acts as a bridge between your simulated hardware (Hercules, SIMH, etc.) and modern
+        output formats, generating authentic-looking Greenbar PDF reports or plain text files.</p>
+    <p>This repository contains three distinct projects that work together to provide a complete printing solution:</p>
+    <ol>
+        <li><strong>ProjectPrinter</strong>: The core service that listens for print jobs, processes the data (including
+            EBCDIC/ASCII conversion and overstrike handling), and generates the output.</li>
+        <li><strong>device_config</strong>: A local console-based utility (TUI) for managing your printer configurations
+            directly on the host machine.</li>
+        <li><strong>Device_Config3270</strong>: A unique configuration server that allows you to manage your printers
+            using a TN3270 terminal emulator, providing an authentic mainframe-style experience.</li>
+    </ol>
+    <hr>
+
+    <h2>2. Installation and Setup</h2>
+
+    <h3>Prerequisites</h3>
+    <p>ProjectPrinter is built on <strong>.NET 9.0</strong>. You must have the .NET 9.0 Runtime installed to run the
+        applications, or the .NET 9.0 SDK to build them from source.</p>
+    <ul>
+        <li><a href="https://dotnet.microsoft.com/en-us/download/dotnet/9.0">Download .NET 9.0</a></li>
+    </ul>
+
+    <h3>Cloning the Repository</h3>
+    <pre><code>git clone https://github.com/SComps/ProjectPrinter.git
+cd ProjectPrinter</code></pre>
+
+    <h3>Building the Projects</h3>
+    <p>You can build the entire solution using Visual Studio 2022+ or the <code>.NET CLI</code>.</p>
+    <p><strong>Using CLI:</strong></p>
+    <pre><code># Publish the core printer service (AOT)
+dotnet publish ProjectPrinter/ProjectPrinter.vbproj --self-contained -c Release -o ./publish/ProjectPrinter
+
+# Publish the local config utility (AOT)
+dotnet publish device_config/device_config.vbproj --self-contained -c Release -o ./publish/device_config
+
+# Publish the TN3270 config server (AOT)
+dotnet publish Device_Config3270/Device_Config3270.vbproj --self-contained -c Release -o ./publish/Device_Config3270</code></pre>
+    <p>The compiled, self-contained executables will be located in the specified output directories (e.g.,
+        <code>publish/ProjectPrinter/</code>).
+    </p>
+    <hr>
+
+    <h2>3. Configuration</h2>
+    <p>All three applications in the suite share a single configuration file, typically named <code>devices.dat</code>.
+        This file defines the virtual printers, their connection details, and output preferences.</p>
+    <p>You can edit this file manually, but it is highly recommended to use one of the two comprised configuration
+        tools.</p>
+
+    <h3>Option A: Local Console Configuration (<code>device_config</code>)</h3>
+    <p>This tool runs in your terminal and provides a simple menu-driven interface.</p>
+    <p><strong>How to Run:</strong></p>
+    <pre><code>cd device_config
+dotnet run
+# OR
+./device_config [path_to_config_file]</code></pre>
+    <p><em>(Default config file: <code>devices.dat</code> in the current directory)</em></p>
+
+    <p><strong>Usage:</strong></p>
+    <ul>
+        <li><strong>Navigation</strong>: Use <code>PageUp</code>/<code>PageDown</code> or type
+            <code>UP</code>/<code>DOWN</code> to scroll through devices.
+        </li>
+        <li><strong>Add Device</strong>: Type <code>ADD</code>.</li>
+        <li><strong>Edit Device</strong>: Type the <strong>ID number</strong> of the device (e.g., <code>1</code>,
+            <code>2</code>).
+        </li>
+        <li><strong>Delete Device</strong>: Type <code>DELETE &lt;ID&gt;</code> (e.g., <code>DELETE 1</code>).</li>
+        <li><strong>Save Changes</strong>: Type <code>SAVE</code>.</li>
+        <li><strong>Exit</strong>: Type <code>EXIT</code>.</li>
+    </ul>
+    <p><strong>Editing Fields:</strong><br>When editing a device, use <code>Enter</code> to confirm a field and move to
+        the next. Use the arrow keys to navigate within a text field.</p>
+
+    <h3>Option B: TN3270 Remote Configuration (<code>Device_Config3270</code>)</h3>
+    <p>For the true mainframe enthusiast, this tool runs a mini TN3270 server. You can connect to it using your favorite
+        3270 emulator (x3270, wc3270, Tom Brennan's Vista, etc.) and configure your printers using a CICS-like
+        interface.</p>
+
+    <p><strong>How to Run:</strong></p>
+    <pre><code>cd Device_Config3270
+dotnet run -- -p 3270</code></pre>
+    <ul>
+        <li><code>-p &lt;port&gt;</code>: Specifies the listening port (default is 3270).</li>
+        <li>You can also specify the config file path as a second argument.</li>
+    </ul>
+
+    <p><strong>Connecting:</strong><br>Open your TN3270 emulator and connect to <code>localhost:3270</code> (or the IP
+        of the machine running the tool).</p>
+
+    <p><strong>Usage:</strong></p>
+    <p>The interface mimics a mainframe transaction screen.</p>
+    <ul>
+        <li><strong>PF7 / PF8</strong>: Page Up / Page Down.</li>
+        <li><strong>PF3</strong>: Exit / Back.</li>
+        <li><strong>Command Line</strong>: Type <code>ADD</code>, <code>SAVE</code>, or the ID of a device to edit.</li>
+        <li><strong>Fields</strong>: Tab between fields and type naturally.</li>
+    </ul>
+
+    <h3>Configuration Fields Explained</h3>
+    <p>When configuring a printer (using either tool), you will see the following fields:</p>
+    <table>
+        <tr>
+            <th>Field</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><strong>Device Name</strong></td>
+            <td>A friendly name for the printer (e.g., <code>MVS_PRT0</code>).</td>
+        </tr>
+        <tr>
+            <td><strong>Description</strong></td>
+            <td>A brief description (e.g., <code>Job Output Printer</code>).</td>
+        </tr>
+        <tr>
+            <td><strong>Device Type</strong></td>
+            <td><code>0</code> = Printer, <code>1</code> = Reader (Reader support is experimental).</td>
+        </tr>
+        <tr>
+            <td><strong>Connection Type</strong></td>
+            <td><code>0</code> = Socket (Most common), <code>1</code> = File, <code>2</code> = Physical.</td>
+        </tr>
+        <tr>
+            <td><strong>Destination</strong></td>
+            <td>The IP address and port of the host system to connect to (e.g., <code>127.0.0.1:1403</code>).</td>
+        </tr>
+        <tr>
+            <td><strong>OS</strong></td>
+            <td>The source OS. Critical for correct carriage control handling.<br>0: MVS 3.8J<br>1: VMS<br>2: MPE
+                (HP3000)<br>3: RSTS/E<br>4: VM/370<br>5: NOS 2.7.8<br>6: VM/SP<br>7: Tandy XENIX<br>8: z/OS</td>
+        </tr>
+        <tr>
+            <td><strong>Auto Connect</strong></td>
+            <td><code>True</code>: Start listening immediately inside ProjectPrinter.<br><code>False</code>: Requires
+                manual start (rarely used).</td>
+        </tr>
+        <tr>
+            <td><strong>Output PDF</strong></td>
+            <td><code>True</code>: Generate a Greenbar PDF.<br><code>False</code>: Generate plain text only.</td>
+        </tr>
+        <tr>
+            <td><strong>Orientation</strong></td>
+            <td><code>0</code>: Landscape<br><code>1</code>: Portrait<br><code>2</code>: Landscape (No
+                Background)<br><code>3</code>: Portrait (No Background)</td>
+        </tr>
+        <tr>
+            <td><strong>Output Dir</strong></td>
+            <td>The directory where PDFs/Text files will be saved. Can be relative or absolute.</td>
+        </tr>
+    </table>
+    <hr>
+
+    <h2>4. Running the Virtual Printer (<code>ProjectPrinter</code>)</h2>
+    <p>Once your devices are configured in <code>devices.dat</code>, you are ready to start the main engine.</p>
+
+    <p><strong>Command Line Syntax:</strong></p>
+    <pre><code>./ProjectPrinter [options]</code></pre>
+
+    <p><strong>Options:</strong></p>
+    <ul>
+        <li><code>config:&lt;filename&gt;</code> : Specify a custom config file (Default: <code>devices.dat</code>).
+        </li>
+        <li><code>logType:&lt;type&gt;</code> : Control logging.
+            <ul>
+                <li><code>printers.log</code> (Default): Log to a file named printers.log.</li>
+                <li><code>default</code>: Log to the console window (stdout).</li>
+                <li><code>none</code>: Disable logging.</li>
+                <li><code>&lt;filename&gt;</code>: Log to a specific custom file.</li>
+            </ul>
+        </li>
+        <li><code>--imageproc</code>: Force the use of the legacy image-based background processor (slower, but provided
+            for compatibility).</li>
+        <li><code>test</code>: Runs a diagnostic test that generates sample greenbar PDFs in the current directory.</li>
+        <li><code>version</code>: Displays the current version and exits.</li>
+    </ul>
+
+    <p><strong>Example:</strong></p>
+    <p>Run with console logging (useful for debugging):</p>
+    <pre><code>./ProjectPrinter logType:default</code></pre>
+
+    <p>Run as a background "service" (logging to file):</p>
+    <pre><code>./ProjectPrinter</code></pre>
+
+    <div class="note">
+        <strong>Hot-Reloading:</strong> ProjectPrinter monitors the <code>devices.dat</code> file. If you make changes
+        using <code>device_config</code> or <code>Device_Config3270</code> while the printer engine is running, it will
+        automatically detect the changes, disconnect affected devices, and reload the configuration without needing a
+        restart.
+    </div>
+    <hr>
+
+    <h2>5. Connecting Your Emulator</h2>
+    <p>To use ProjectPrinter, configure your emulator (Hercules, SIMH, etc.) to connect to the socket defined in your
+        device configuration.</p>
+
+    <h3>Example: Hercules (MVS/VM)</h3>
+    <p>If you configured a printer in ProjectPrinter with <strong>Destination</strong> <code>1403</code> and using the
+        host <code>127.0.0.1</code>:</p>
+    <p>In <code>hercules.conf</code>:</p>
+    <pre><code># Device  Type  Address
+000E      1403  127.0.0.1:1403 sockdev</code></pre>
+    <p><em>Note: Ensure the port matches the 'Destination' field in your config.</em></p>
+
+    <h3>Example: SIMH (VAX/PDP-11)</h3>
+    <p>For a line printer on a VAX (LPT):</p>
+    <pre><code>att lpt 1403</code></pre>
+    <p><em>(Note: SIMH configuration varies widely depending on the specific machine and line printer emulation).</em>
+    </p>
+    <hr>
+
+    <h2>6. Output</h2>
+    <p>Generated files will appear in the <strong>Output Dir</strong> specified for each device.</p>
+    <ul>
+        <li><strong>PDFs</strong>: High-resolution, searchable PDFs with authentic greenbar backgrounds, tractor feed
+            holes, and page numbering.</li>
+        <li><strong>Text</strong>: Standard ASCII text files containing the print job content.</li>
+    </ul>
+
+</body>
+
+</html>
