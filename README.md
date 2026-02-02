@@ -30,6 +30,11 @@ so much I use it myself, and the greenbar paper background (currently in jpg) is
 racingmars definitely deserves that credit.  
 
 2/1/26 <b>Added a 3270 terminal server for device configuration</b>
+Device_Config3270 is a 3270 terminal server that allows you to configure devices using a TN3270 terminal emulator.  It's started as a process and must remain running.
+There's only one parameter -p <port> which defines the port it's going to listen on.  It defaults to 3270.  Give it a try
+
+ProjectPrinter now supports hot reload of devices.  When you make changes using either of the device config utilities; as soon as it's saved, ProjectPrinter will reload the devices and start using them.  There will be a short interruption as all the devices will need to disconnect, and reconnect whether they've changed or not.
+
 
 
 1/12/26
