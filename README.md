@@ -29,6 +29,8 @@ polished virtual printer with a lot more capability than this project, check it 
 so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
 racingmars definitely deserves that credit.  
 
+2/1/26 <b>Added a 3270 terminal server for device configuration</b>
+
 
 1/12/26
 Significant enhancements to the Greenbar PDF generation:
