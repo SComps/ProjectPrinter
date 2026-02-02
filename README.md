@@ -23,8 +23,11 @@ There are three projects in this repo.
 
 <b>ProjectPrinter</b> is the server code.  Output pdf's and txt files are deposited in the
 configured directory (see device_config)
+
 <b>device_config</b> is a console mode application for setting up all of your printers.
+
 <b>Device_Config3270</b> is a 3270 terminal server that performs the same function as device_config; just cooler.
+
 
 This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
 polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
