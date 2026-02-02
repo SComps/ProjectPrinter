@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11415.281 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "ProjectPrinter", "ProjectPrinter\ProjectPrinter.vbproj", "{3D47126E-4FCF-4D98-A275-5258021EDEFB}"
 EndProject
@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		pp_debian_build.tar = pp_debian_build.tar
 	EndProjectSection
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "TN3270DeviceConfig", "C:\Users\Scott\.gemini\antigravity\scratch\TN3270DeviceConfig\TN3270DeviceConfig.vbproj", "{2877FC21-B924-BEBA-99A1-3E5EF39B38D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +28,10 @@ Global
 		{AED46AD2-CDB0-465D-A81F-BD47F8692264}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AED46AD2-CDB0-465D-A81F-BD47F8692264}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AED46AD2-CDB0-465D-A81F-BD47F8692264}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2877FC21-B924-BEBA-99A1-3E5EF39B38D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2877FC21-B924-BEBA-99A1-3E5EF39B38D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2877FC21-B924-BEBA-99A1-3E5EF39B38D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2877FC21-B924-BEBA-99A1-3E5EF39B38D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
