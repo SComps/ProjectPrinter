@@ -362,7 +362,7 @@ Public Class devs
                 Program.Log($"[{DevName}] directory {OutDest}/{UserID} already exists.",, ConsoleColor.Yellow)
             End If
             Dim filename As String = $"{OutDest}/{UserID}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.txt"
-            Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
+            Dim pdfName As String = $"{OutDest}/{UserID}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
 
 
             'Dim writer As New StreamWriter(filename)
@@ -394,14 +394,21 @@ Public Class devs
                 Try
                     Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
                     If parts(0).StartsWith("*") Then
-                        If parts(1) = "JOBID: " Then
+                        'Log(line)
+                        'For mypart = 0 To parts.Count - 1
+                        'Log($"Part {mypart} is |{parts(mypart)}|")
+                        'Next
+                        If parts(1) = "JOBID:" Then
                             jobId = parts(2)
+                            'Log($"Setting jobID to {parts(2)}")
                         End If
-                        If parts(1) = "JOB" And parts(2) = "NAME" Then
+                        If parts(1) = "JOB" And parts(2) = "NAME:" Then
                             jobName = parts(3)
+                            'Log($"Setting Job to {parts(3)}")
                         End If
-                        If parts(1) = "USER" And parts(2) = "ID" Then
+                        If parts(1) = "USER" And parts(2) = "ID:" Then
                             user = parts(3)
+                            'Log($"Setting user to {parts(2)}")
                         End If
                     End If
                 Catch ex As Exception
@@ -409,7 +416,7 @@ Public Class devs
                 End Try
             End If
         Next
-        Log($"Returning {jobName},jobId,user")
+        Log($"Returning {jobName},{jobId},{user}")
         Return (jobName, jobId, user)
     End Function
 
