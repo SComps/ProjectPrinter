@@ -19,15 +19,27 @@ a smile.  It was developed on a Windows 10 system, however we've gotten it to bu
 linux with .NET 9, and even the Raspberry Pi 5.  It can handle a number of simultaneous 
 printers, and seems to perform reasonably well when several printers are running concurrently.
 
-There are two projects in this repo.  
+There are three projects in this repo.  
 
-ProjectPrinter is the server code.  Output pdf's and txt files are deposited in the
-configured directory (see device_config) 
+<b>ProjectPrinter</b> is the server code.  Output pdf's and txt files are deposited in the
+configured directory (see device_config)
+
+<b>device_config</b> is a console mode application for setting up all of your printers.
+
+<b>Device_Config3270</b> is a 3270 terminal server that performs the same function as device_config; just cooler.
+
 
 This project is not meant to replace virtual1403, which is a fantastic project.  If you want a highly 
 polished virtual printer with a lot more capability than this project, check it out.  You'll love it.  I love it
 so much I use it myself, and the greenbar paper background (currently in jpg) is from virtual1403.
 racingmars definitely deserves that credit.  
+
+2/1/26 <b>Added a 3270 terminal server for device configuration</b>
+Device_Config3270 is a 3270 terminal server that allows you to configure devices using a TN3270 terminal emulator.  It's started as a process and must remain running.
+There's only one parameter -p <port> which defines the port it's going to listen on.  It defaults to 3270.  Give it a try
+
+ProjectPrinter now supports hot reload of devices.  When you make changes using either of the device config utilities; as soon as it's saved, ProjectPrinter will reload the devices and start using them.  There will be a short interruption as all the devices will need to disconnect, and reconnect whether they've changed or not.
+
 
 
 1/12/26
