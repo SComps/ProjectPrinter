@@ -394,7 +394,6 @@ Public Class devs
                 Try
                     Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
                     If parts(0).StartsWith("*") Then
-
                         If parts(1) = "JOBID: " Then
                             jobId = parts(2)
                         End If
@@ -410,6 +409,7 @@ Public Class devs
                 End Try
             End If
         Next
+        Log($"Returning {jobName},jobId,user")
         Return (jobName, jobId, user)
     End Function
 
