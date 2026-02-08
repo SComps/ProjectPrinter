@@ -89,7 +89,7 @@ Module Program
         Next
         AddHandler AssemblyLoadContext.Default.Unloading, AddressOf OnSignalReceived
         Dim assembly As Assembly = Assembly.GetExecutingAssembly()
-        Dim version As String = "github.0.1.0-SI"
+        Dim version As String = "github.2026.02.08.UD"
         Dim isTest = False
         Dim isVersion = False
         If args.Count > 0 Then

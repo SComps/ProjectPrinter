@@ -355,7 +355,13 @@ Public Class devs
                 Program.Log($"[{DevName}] Created output directory {OutDest}",, ConsoleColor.Yellow)
                 FileIO.FileSystem.CreateDirectory(OutDest)
             End If
-            Dim filename As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.txt"
+            If Not FileIO.FileSystem.DirectoryExists(OutDest & $"/{UserID}") Then
+                Program.Log($"[{DevName}] creating user directory {OutDest}/{UserID}",, ConsoleColor.Yellow)
+                FileIO.FileSystem.CreateDirectory(OutDest & $"/{UserID}")
+            Else
+                Program.Log($"[{DevName}] directory {OutDest}/{UserID} already exists.",, ConsoleColor.Yellow)
+            End If
+            Dim filename As String = $"{OutDest}/{UserID}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.txt"
             Dim pdfName As String = $"{OutDest}/{DevName}-{UserID}-{JobID}-{JobName}_{JobNumber}.pdf"
 
 
@@ -372,7 +378,7 @@ Public Class devs
             CreatePDF(JobName, doc, pdfName)
 
         Else
-            Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage or banners.", doc.Count, DevName))
+            Log(String.Format("[{1}] Ignoring document with {0} lines as line garbage Or banners.", doc.Count, DevName))
             Receiving = False
         End If
     End Sub
@@ -389,13 +395,13 @@ Public Class devs
                     Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
                     If parts(0).StartsWith("*") Then
 
-                        If parts(1) = "JOBID:" Then
+                        If parts(1) = "JOBID: " Then
                             jobId = parts(2)
                         End If
-                        If parts(1) = "JOB" And parts(2) = "NAME:" Then
+                        If parts(1) = "JOB" And parts(2) = "NAME" Then
                             jobName = parts(3)
                         End If
-                        If parts(1) = "USER" And parts(2) = "ID:" Then
+                        If parts(1) = "USER" And parts(2) = "ID" Then
                             user = parts(3)
                         End If
                     End If
@@ -429,7 +435,7 @@ Public Class devs
                         End If
                     End If
                 Catch ex As Exception
-                    'Log($"MVS38J EXTRACT: {ex.Message}")
+                    'Log($"MVS38J EXTRACT {ex.Message}")
                 End Try
             End If
         Next
@@ -446,7 +452,7 @@ Public Class devs
             Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
             If parts.Count > 2 Then
                 If ((parts(0) = "LOCATION") And (parts(1) = "USERID")) Then
-                    Program.Log($"[{DevName}] Determined VM370 UserId: {parts(3)}")
+                    Program.Log($"[{DevName}] Determined VM370 UserId {parts(3)}")
                     user = parts(3)
                 End If
                 If ((parts(0) = "SPOOL") And (parts(1) = "FILE") And (parts(2) = "NAME")) Then
@@ -472,7 +478,7 @@ Public Class devs
             Dim parts As String() = line.Split(" ", StringSplitOptions.RemoveEmptyEntries)
             If parts.Count > 4 Then
                 If ((parts(2) = "USERID") And (parts(3) = "ORIGIN")) Then
-                    Program.Log($"[{DevName}] Determined VM370 UserId: {parts(0)}")
+                    Program.Log($"[{DevName}] Determined VM370 UserId {parts(0)}")
                     user = parts(0)
                 End If
                 If (parts(2) = "FILENAME" And parts(3) = "FILETYPE") Then
@@ -504,7 +510,7 @@ Public Class devs
                     'the word ENTRY appears in exactly the right spot.
                     'which face it, is absolutely going to happen sometime 
                     'but I'm not magic, so...
-                    Dim jobParts As String() = parts(5).Split(":")
+                    Dim jobParts As String() = parts(5).Split("")
                     ' after entry is something like SYS$PRINT:[1,3]START.COM
                     ' so separate those.
                     Dim jobQueue As String = jobParts(0)
@@ -548,7 +554,7 @@ Public Class devs
         Next
         If Not GotInfo Then
             jobName = "UNKNOWN"
-            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = Now.ToShortTimeString.Replace("", "-")
             jobId = jobId.Replace("/", "-")
             user = DevName
         End If
@@ -583,7 +589,7 @@ Public Class devs
         Next
         If Not GotInfo Then
             jobName = "UNKNOWN"
-            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = Now.ToShortTimeString.Replace("", "-")
             jobId = jobId.Replace("/", "-")
             user = DevName
         End If
@@ -621,7 +627,7 @@ Public Class devs
 
         If Not GotInfo Then
             jobName = "UNKNOWN"
-            jobId = Now.ToShortTimeString.Replace(":", "-")
+            jobId = Now.ToShortTimeString.Replace("", "-")
             jobId = jobId.Replace("/", "-")
             user = DevName
         End If
@@ -823,7 +829,7 @@ Public Class devs
                             ' Track the current starting position for drawing
                             Dim currentX As Double = leftMargin
                             If (segments.Count > 1) And (segments(1).Trim <> "") Then
-                                'Program.Log($"Segment count is {segments.Count}")
+                                'Program.Log($"Segment count Is {segments.Count}")
                                 ' Iterate through the segments
                                 Dim segIdx As Integer = 0
                                 Dim myOffset As Double = 0      ' Set if we want to offset overstrikes.
@@ -840,7 +846,7 @@ Public Class devs
                                     End If
                                 Next
                             Else
-                                'Program.Log($"{segments.Count} segment 2 is [{segments(1)}]")
+                                'Program.Log($"{segments.Count} segment 2 Is [{segments(1)}]")
                                 ' The second segment is blank, so just write it as usual.
                                 gfx.DrawString(line, font, XBrushes.Black, New XRect(leftMargin, y, availableWidth, page.Height.Point), XStringFormats.TopLeft)
                             End If
@@ -868,7 +874,7 @@ Public Class devs
             ' Ensure we properly end the function
             Return outputFile
         Catch ex As Exception
-            Program.Log($"Error: {ex.Message}",, ConsoleColor.Red)
+            Program.Log($"Error {ex.Message}",, ConsoleColor.Red)
         End Try
         Return "" ' Just to quiet down the IDE
 
@@ -883,7 +889,7 @@ Public Class devs
         End If
         Dim fname As String = OutDest & "/" & jobname
         If Not FileIO.FileSystem.FileExists(fname) Then
-            Program.Log($"[{DevName}] Job {fname} does not exist in {OutDest}.",, ConsoleColor.Red)
+            Program.Log($"[{DevName}] Job {fname} does Not exist in {OutDest}.",, ConsoleColor.Red)
             Return
         End If
         Dim dataBuilder As New StringBuilder()
