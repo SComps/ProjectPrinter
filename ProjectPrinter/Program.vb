@@ -315,11 +315,14 @@ Module Program
     End Sub
 
     Function CheckArgs(args As String()) As List(Of parmStruct)
-        If args.Count > 0 Then
-        End If
         Dim argList As New List(Of parmStruct)
         Dim ParmsProvided As Integer = 0
+
+        ' Strip all -- flags before processing; they were already handled in Main
+        args = args.Where(Function(a) Not a.StartsWith("--")).ToArray()
+
         If args.Length = 0 Then
+            ' No arguments were specified, set up the defaults
             args = {"config:devices.dat", "logType:printers.log"}
         End If
 
@@ -343,6 +346,8 @@ Module Program
                 newParm.arg = thisParm
                 newParm.value = thisValue
                 argList.Add(newParm)
+                ' See if the logtype is defined.  If it is, set it up here before
+                ' we start getting chatty on the console.
                 If newParm.arg = "logType" Then
                     logType = thisValue
                 End If
